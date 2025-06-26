@@ -33,17 +33,17 @@ class MultiModelPipeline {
   private baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
   private isAvailable: boolean = false;
   
-  // Free models for the pipeline
-private summarizerModels = [
-  'google/gemma-3-4b-it:free',
-  'google/gemma-3-4b-it:free',
-  'google/gemma-3-4b-it:free',
-  'google/gemma-3-4b-it:free',
-  'google/gemma-3-4b-it:free'
-];
+  // Diverse free models for summarization (different architectures and training)
+  private summarizerModels = [
+    'mistralai/mistral-small-3.2-24b-instruct:free',  // Mistral architecture
+    'google/gemini-2.0-flash-exp:free',               // Google's Gemini
+    'deepseek/deepseek-r1-0528-qwen3-8b:free',       // DeepSeek reasoning model
+    'qwen/qwq-32b:free',                              // Qwen large model
+    'mistralai/mistral-small-3.2-24b-instruct:free'  // Fallback to strongest free model
+  ];
 
-private contradictionModel = 'google/gemma-3-4b-it:free';
-
+  // Stronger model for contradiction analysis
+  private contradictionModel = 'google/gemini-2.0-flash-exp:free';
 
   constructor() {
     try {
@@ -55,7 +55,7 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
       }
       
       this.isAvailable = true;
-      console.log('Multi-Model Pipeline initialized with 5 summarizer models + 1 contradiction model');
+      console.log('Multi-Model Pipeline initialized with diverse models:', this.summarizerModels);
     } catch (error) {
       console.warn('Failed to initialize Multi-Model Pipeline:', error);
       this.isAvailable = false;
@@ -73,9 +73,9 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
         return cachedResult;
       }
 
-      // Convert all content to comments with IDs
-      const allComments = this.convertToCommentsWithIds(comments, posts);
-      console.log(`Processing ${allComments.length} total items`);
+      // Convert all content to comments with IDs and deduplicate
+      const allComments = this.convertAndDeduplicateComments(comments, posts);
+      console.log(`Processing ${allComments.length} unique items (after deduplication)`);
 
       if (allComments.length === 0) {
         return this.createEmptyReport(username);
@@ -106,13 +106,13 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
     }
   }
 
-  private convertToCommentsWithIds(comments: RedditComment[], posts: RedditPost[]): CommentWithId[] {
+  private convertAndDeduplicateComments(comments: RedditComment[], posts: RedditPost[]): CommentWithId[] {
     const allItems: CommentWithId[] = [];
     let idCounter = 1;
 
     // Process comments
     comments.forEach(comment => {
-      if (comment.body && comment.body !== '[deleted]' && comment.body !== '[removed]' && comment.body.length > 10) {
+      if (comment.body && comment.body !== '[deleted]' && comment.body !== '[removed]' && comment.body.length > 20) {
         allItems.push({
           id: `ID-${idCounter++}`,
           text: comment.body,
@@ -128,7 +128,7 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
 
     // Process posts
     posts.forEach(post => {
-      if (post.selftext && post.selftext !== '[deleted]' && post.selftext !== '[removed]' && post.selftext.length > 10) {
+      if (post.selftext && post.selftext !== '[deleted]' && post.selftext !== '[removed]' && post.selftext.length > 20) {
         const fullText = `${post.title} ${post.selftext}`.trim();
         allItems.push({
           id: `ID-${idCounter++}`,
@@ -142,8 +142,59 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
       }
     });
 
+    // Deduplicate similar content (cross-posts, reposts)
+    const deduplicated = this.deduplicateSimilarContent(allItems);
+    console.log(`Deduplicated from ${allItems.length} to ${deduplicated.length} items`);
+
     // Sort by date (oldest first)
-    return allItems.sort((a, b) => a.date - b.date);
+    return deduplicated.sort((a, b) => a.date - b.date);
+  }
+
+  private deduplicateSimilarContent(items: CommentWithId[]): CommentWithId[] {
+    const seen = new Map<string, CommentWithId>();
+    const threshold = 0.85; // 85% similarity threshold
+
+    for (const item of items) {
+      const normalizedText = this.normalizeText(item.text);
+      let isDuplicate = false;
+
+      // Check against existing items for similarity
+      for (const [existingText, existingItem] of seen.entries()) {
+        const similarity = this.calculateSimilarity(normalizedText, existingText);
+        if (similarity > threshold) {
+          // Keep the one with higher score or more recent
+          if (item.score > existingItem.score || item.date > existingItem.date) {
+            seen.delete(existingText);
+            seen.set(normalizedText, item);
+          }
+          isDuplicate = true;
+          break;
+        }
+      }
+
+      if (!isDuplicate) {
+        seen.set(normalizedText, item);
+      }
+    }
+
+    return Array.from(seen.values());
+  }
+
+  private normalizeText(text: string): string {
+    return text.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private calculateSimilarity(text1: string, text2: string): number {
+    const words1 = new Set(text1.split(' '));
+    const words2 = new Set(text2.split(' '));
+    
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size; // Jaccard similarity
   }
 
   private divideToBatches(comments: CommentWithId[], numBatches: number): CommentWithId[][] {
@@ -177,16 +228,16 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
       const model = this.summarizerModels[i % this.summarizerModels.length];
       
       try {
-        console.log(`Summarizing batch ${i + 1}/${batches.length} with model: ${model}`);
+        console.log(`Summarizing batch ${i + 1}/${batches.length} with model: ${model} (${batch.length} items)`);
         const batchSummaries = await this.summarizeBatch(batch, model);
         allSummaries.push(...batchSummaries);
         
         // Add delay between batches to respect rate limits
         if (i < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
       } catch (error) {
-        console.warn(`Batch ${i + 1} summarization failed:`, error);
+        console.warn(`Batch ${i + 1} summarization failed with ${model}:`, error);
         // Add fallback summaries for failed batch
         const fallbackSummaries = this.createFallbackSummaries(batch);
         allSummaries.push(...fallbackSummaries);
@@ -209,28 +260,31 @@ private contradictionModel = 'google/gemma-3-4b-it:free';
   }
 
   private buildSummarizationPrompt(batch: CommentWithId[]): string {
-    const commentsText = batch.map(comment => 
-      `${comment.id}: "${comment.text}"`
-    ).join('\n\n');
+    const commentsText = batch.map(comment => {
+      const dateStr = new Date(comment.date * 1000).toLocaleDateString();
+      return `${comment.id} (r/${comment.subreddit}, ${dateStr}): "${comment.text}"`;
+    }).join('\n\n');
 
     return `You are part of a distributed AI pipeline designed to analyze a Reddit user's full comment history for contradictions or ideological inconsistencies. You are one of 5 summarizer models in Stage 1.
 
 Your task is to summarize each comment into a short, clear, context-rich statement while preserving:
-- Tone (e.g., sarcasm, aggression, passivity)
-- Beliefs or ideologies (e.g., pro/anti-gun, political stances)
+- Tone (e.g., sarcasm, aggression, passivity, enthusiasm)
+- Beliefs or ideologies (e.g., pro/anti-gun, political stances, moral positions)
 - Sentiment (positive/negative/neutral)
+- Emotional intensity (mild, strong, passionate, etc.)
 
-IMPORTANT: Always preserve tone and intent explicitly in the summary. Include emotional cues where possible.
+CRITICAL: Always preserve tone and intent explicitly in the summary. Include emotional cues and ideological markers where possible. Consider the subreddit context for tone detection.
 
 Comments to summarize:
 ${commentsText}
 
 Output format (one line per comment):
-ID-X: [Clear summary preserving tone, beliefs, and sentiment]
+ID-X: [Clear summary preserving tone, beliefs, sentiment, and emotional intensity]
 
-Example:
-ID-32: Believes violence can be justified in some cases (serious tone).
-ID-33: Strongly opposes violence in all circumstances (passionate, absolute stance).
+Examples:
+ID-32: Believes violence can be justified in some cases (serious, measured tone).
+ID-33: Strongly opposes violence in all circumstances (passionate, absolute stance, moral conviction).
+ID-34: Sarcastically mocks people who complain about pineapple on pizza (dismissive, humorous tone).
 
 Summarize each comment now:`;
   }
@@ -241,7 +295,7 @@ Summarize each comment now:`;
     }
 
     try {
-      console.log(`Analyzing contradictions from ${summaries.length} summaries`);
+      console.log(`Analyzing contradictions from ${summaries.length} summaries using ${this.contradictionModel}`);
       const prompt = this.buildContradictionPrompt(summaries);
       const response = await this.makeOpenRouterRequest(this.contradictionModel, prompt);
       return this.parseContradictionResponse(response, summaries);
@@ -260,25 +314,32 @@ Summarize each comment now:`;
 
 Your task is to identify any contradictions, shifts in belief, or inconsistency in tone or opinion across these summaries.
 
-Be specific and reference the IDs when describing contradictions. Look for:
-- Direct opposing viewpoints
-- Ideological inconsistencies
-- Contradictory emotional stances
-- Flip-flopping on issues
+IMPORTANT: Only flag contradictions that show **reversal of opinion**, **inconsistency of belief**, or **emotional flips on the same topic**. Do not flag:
+- Simple tone changes across unrelated posts
+- Normal personal growth or opinion evolution over long time periods
+- Different contexts (serious vs casual subreddits)
+- Sarcasm vs genuine statements
+- Hypothetical scenarios vs real opinions
+
+Look for:
+- Direct opposing viewpoints on the same topic
+- Ideological inconsistencies within short time frames
+- Contradictory moral or ethical stances
+- Flip-flopping without reasonable explanation
 
 Summaries to analyze:
 ${summariesText}
 
-Output format:
-Contradiction between ID-X and ID-Y: [Specific description of the contradiction]
+Output format (be specific and reference IDs):
+Contradiction between ID-X and ID-Y: [Specific description of the contradiction and why it's significant]
 
-If no contradictions are found, respond with:
+If no genuine contradictions are found, respond with:
 No contradictions detected.
 
-If insufficient information, respond with:
+If insufficient information for analysis, respond with:
 No contradiction detectable with given summaries.
 
-Analyze now:`;
+Analyze now with high standards for what constitutes a real contradiction:`;
   }
 
   private async makeOpenRouterRequest(model: string, prompt: string): Promise<string> {
@@ -303,12 +364,14 @@ Analyze now:`;
           }
         ],
         temperature: 0.1,
-        max_tokens: 2000
+        max_tokens: 3000,
+        top_p: 0.9
       })
     });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
@@ -335,9 +398,15 @@ Analyze now:`;
       }
     }
     
-    // If parsing failed, create fallback summaries
-    if (summaries.length === 0) {
-      return this.createFallbackSummaries(batch);
+    // If parsing failed or incomplete, create fallback summaries for missing items
+    const missingComments = batch.filter(comment => 
+      !summaries.some(summary => summary.id === comment.id)
+    );
+    
+    if (missingComments.length > 0) {
+      console.warn(`${missingComments.length} summaries missing from AI response, adding fallbacks`);
+      const fallbackSummaries = this.createFallbackSummaries(missingComments);
+      summaries.push(...fallbackSummaries);
     }
     
     return summaries;
@@ -352,96 +421,209 @@ Analyze now:`;
       if (match) {
         const [, id1, id2, description] = match;
         
-        contradictions.push({
-          id1,
-          id2,
-          description: description.trim(),
-          confidence: 85, // High confidence for AI-detected contradictions
-          category: this.detectCategory(description)
-        });
-      }
-    }
-    
-    return contradictions;
-  }
-
-  private createFallbackSummaries(comments: CommentWithId[]): SummaryResult[] {
-    return comments.map(comment => ({
-      id: comment.id,
-      summary: this.createBasicSummary(comment.text),
-      originalComment: comment
-    }));
-  }
-
-  private createBasicSummary(text: string): string {
-    // Simple fallback summarization
-    const truncated = text.length > 100 ? text.substring(0, 100) + '...' : text;
-    const sentiment = this.detectBasicSentiment(text);
-    return `${truncated} (${sentiment} tone)`;
-  }
-
-  private detectBasicSentiment(text: string): string {
-    const positive = ['good', 'great', 'love', 'like', 'amazing', 'awesome'];
-    const negative = ['bad', 'hate', 'terrible', 'awful', 'horrible', 'worst'];
-    
-    const lower = text.toLowerCase();
-    const posCount = positive.filter(word => lower.includes(word)).length;
-    const negCount = negative.filter(word => lower.includes(word)).length;
-    
-    if (posCount > negCount) return 'positive';
-    if (negCount > posCount) return 'negative';
-    return 'neutral';
-  }
-
-  private createFallbackContradictions(summaries: SummaryResult[]): ContradictionResult[] {
-    const contradictions: ContradictionResult[] = [];
-    
-    // Simple keyword-based contradiction detection
-    for (let i = 0; i < summaries.length; i++) {
-      for (let j = i + 1; j < summaries.length; j++) {
-        const summary1 = summaries[i];
-        const summary2 = summaries[j];
+        // Verify both IDs exist in summaries
+        const summary1 = summaries.find(s => s.id === id1);
+        const summary2 = summaries.find(s => s.id === id2);
         
-        if (this.hasBasicContradiction(summary1.summary, summary2.summary)) {
+        if (summary1 && summary2) {
+          // Calculate confidence based on time difference and content analysis
+          const confidence = this.calculateContradictionConfidence(summary1, summary2, description);
+          
           contradictions.push({
-            id1: summary1.id,
-            id2: summary2.id,
-            description: 'Basic opposing language patterns detected (fallback analysis)',
-            confidence: 60,
-            category: 'opinion'
+            id1,
+            id2,
+            description: description.trim(),
+            confidence,
+            category: this.detectCategory(description)
           });
         }
       }
     }
     
-    return contradictions.slice(0, 10); // Limit to top 10
+    // Sort by confidence and limit to most significant contradictions
+    return contradictions
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 15);
   }
 
-  private hasBasicContradiction(text1: string, text2: string): boolean {
-    const opposites = [
-      ['love', 'hate'], ['like', 'dislike'], ['good', 'bad'],
-      ['support', 'oppose'], ['agree', 'disagree'], ['yes', 'no']
-    ];
+  private calculateContradictionConfidence(
+    summary1: SummaryResult, 
+    summary2: SummaryResult, 
+    description: string
+  ): number {
+    let confidence = 85; // Base confidence for AI-detected contradictions
+    
+    // Reduce confidence if comments are very close in time (might be context-dependent)
+    const timeDiff = Math.abs(summary2.originalComment.date - summary1.originalComment.date);
+    const daysDiff = timeDiff / (24 * 60 * 60);
+    
+    if (daysDiff < 1) {
+      confidence -= 20; // Same day posts might be contextual
+    } else if (daysDiff < 7) {
+      confidence -= 10; // Same week posts might be related
+    }
+    
+    // Increase confidence for strong opposing language
+    const strongOpposition = ['completely opposite', 'directly contradicts', 'total reversal', 'flip-flop'];
+    if (strongOpposition.some(phrase => description.toLowerCase().includes(phrase))) {
+      confidence += 10;
+    }
+    
+    // Reduce confidence for different subreddit contexts
+    if (summary1.originalComment.subreddit !== summary2.originalComment.subreddit) {
+      confidence -= 5;
+    }
+    
+    return Math.max(50, Math.min(95, confidence));
+  }
 
+  private createFallbackSummaries(comments: CommentWithId[]): SummaryResult[] {
+    return comments.map(comment => ({
+      id: comment.id,
+      summary: this.createEnhancedSummary(comment),
+      originalComment: comment
+    }));
+  }
+
+  private createEnhancedSummary(comment: CommentWithId): string {
+    const text = comment.text;
+    const truncated = text.length > 150 ? text.substring(0, 150) + '...' : text;
+    const sentiment = this.detectAdvancedSentiment(text);
+    const tone = this.detectTone(text);
+    const intensity = this.detectIntensity(text);
+    
+    return `${truncated} (${sentiment} sentiment, ${tone} tone, ${intensity} intensity)`;
+  }
+
+  private detectAdvancedSentiment(text: string): string {
+    const positive = ['good', 'great', 'love', 'like', 'amazing', 'awesome', 'excellent', 'fantastic', 'wonderful'];
+    const negative = ['bad', 'hate', 'terrible', 'awful', 'horrible', 'worst', 'sucks', 'disgusting', 'pathetic'];
+    
+    const lower = text.toLowerCase();
+    const posCount = positive.filter(word => lower.includes(word)).length;
+    const negCount = negative.filter(word => lower.includes(word)).length;
+    
+    if (posCount > negCount + 1) return 'positive';
+    if (negCount > posCount + 1) return 'negative';
+    return 'neutral';
+  }
+
+  private detectTone(text: string): string {
+    const lower = text.toLowerCase();
+    
+    if (lower.includes('lol') || lower.includes('haha') || lower.includes('😂')) return 'humorous';
+    if (lower.includes('wtf') || lower.includes('damn') || lower.includes('shit')) return 'aggressive';
+    if (lower.includes('maybe') || lower.includes('perhaps') || lower.includes('might')) return 'tentative';
+    if (lower.includes('definitely') || lower.includes('absolutely') || lower.includes('never')) return 'assertive';
+    if (lower.includes('?') && text.split('?').length > 2) return 'questioning';
+    
+    return 'neutral';
+  }
+
+  private detectIntensity(text: string): string {
+    const intensifiers = ['very', 'extremely', 'absolutely', 'completely', 'totally', 'really', 'so much'];
+    const lower = text.toLowerCase();
+    const intensifierCount = intensifiers.filter(word => lower.includes(word)).length;
+    
+    if (intensifierCount > 2 || text.includes('!!!') || text.includes('ALL CAPS')) return 'high';
+    if (intensifierCount > 0 || text.includes('!!')) return 'medium';
+    return 'low';
+  }
+
+  private createFallbackContradictions(summaries: SummaryResult[]): ContradictionResult[] {
+    const contradictions: ContradictionResult[] = [];
+    
+    // Enhanced keyword-based contradiction detection
+    for (let i = 0; i < summaries.length; i++) {
+      for (let j = i + 1; j < summaries.length; j++) {
+        const summary1 = summaries[i];
+        const summary2 = summaries[j];
+        
+        // Skip if same subreddit and close in time (likely related context)
+        const timeDiff = Math.abs(summary2.originalComment.date - summary1.originalComment.date);
+        const daysDiff = timeDiff / (24 * 60 * 60);
+        
+        if (summary1.originalComment.subreddit === summary2.originalComment.subreddit && daysDiff < 1) {
+          continue;
+        }
+        
+        const contradictionType = this.detectContradictionType(summary1.summary, summary2.summary);
+        if (contradictionType) {
+          contradictions.push({
+            id1: summary1.id,
+            id2: summary2.id,
+            description: `${contradictionType.description} (fallback analysis)`,
+            confidence: contradictionType.confidence,
+            category: contradictionType.category
+          });
+        }
+      }
+    }
+    
+    return contradictions
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 8); // Limit fallback contradictions
+  }
+
+  private detectContradictionType(text1: string, text2: string): {
+    description: string;
+    confidence: number;
+    category: string;
+  } | null {
     const lower1 = text1.toLowerCase();
     const lower2 = text2.toLowerCase();
-
-    return opposites.some(([pos, neg]) => 
-      (lower1.includes(pos) && lower2.includes(neg)) ||
-      (lower1.includes(neg) && lower2.includes(pos))
-    );
+    
+    // Strong opposites
+    const strongOpposites = [
+      { pos: 'absolutely love', neg: 'absolutely hate', conf: 90 },
+      { pos: 'completely support', neg: 'completely oppose', conf: 88 },
+      { pos: 'strongly agree', neg: 'strongly disagree', conf: 85 },
+      { pos: 'definitely yes', neg: 'definitely no', conf: 83 }
+    ];
+    
+    for (const opposite of strongOpposites) {
+      if ((lower1.includes(opposite.pos) && lower2.includes(opposite.neg)) ||
+          (lower1.includes(opposite.neg) && lower2.includes(opposite.pos))) {
+        return {
+          description: `Strong opposing positions detected: "${opposite.pos}" vs "${opposite.neg}"`,
+          confidence: opposite.conf,
+          category: 'opinion'
+        };
+      }
+    }
+    
+    // Basic opposites
+    const basicOpposites = [
+      { pos: 'love', neg: 'hate', conf: 70 },
+      { pos: 'support', neg: 'oppose', conf: 68 },
+      { pos: 'agree', neg: 'disagree', conf: 65 },
+      { pos: 'good', neg: 'bad', conf: 60 }
+    ];
+    
+    for (const opposite of basicOpposites) {
+      if ((lower1.includes(opposite.pos) && lower2.includes(opposite.neg)) ||
+          (lower1.includes(opposite.neg) && lower2.includes(opposite.pos))) {
+        return {
+          description: `Opposing viewpoints detected: "${opposite.pos}" vs "${opposite.neg}"`,
+          confidence: opposite.conf,
+          category: 'personal-preference'
+        };
+      }
+    }
+    
+    return null;
   }
 
   private detectCategory(description: string): string {
     const lower = description.toLowerCase();
     
-    if (lower.includes('politic') || lower.includes('government')) return 'political';
-    if (lower.includes('food') || lower.includes('preference')) return 'personal-preference';
-    if (lower.includes('fact') || lower.includes('truth')) return 'factual';
-    if (lower.includes('relationship') || lower.includes('dating')) return 'relationship';
-    if (lower.includes('technology') || lower.includes('tech')) return 'technology';
-    if (lower.includes('entertainment') || lower.includes('movie')) return 'entertainment';
-    if (lower.includes('lifestyle') || lower.includes('health')) return 'lifestyle';
+    if (lower.includes('politic') || lower.includes('government') || lower.includes('election')) return 'political';
+    if (lower.includes('food') || lower.includes('preference') || lower.includes('taste')) return 'personal-preference';
+    if (lower.includes('fact') || lower.includes('truth') || lower.includes('evidence')) return 'factual';
+    if (lower.includes('relationship') || lower.includes('dating') || lower.includes('marriage')) return 'relationship';
+    if (lower.includes('technology') || lower.includes('tech') || lower.includes('software')) return 'technology';
+    if (lower.includes('entertainment') || lower.includes('movie') || lower.includes('game')) return 'entertainment';
+    if (lower.includes('lifestyle') || lower.includes('health') || lower.includes('fitness')) return 'lifestyle';
     
     return 'opinion';
   }
@@ -475,7 +657,7 @@ Analyze now:`;
         downvotes: Math.floor(Math.random() * 10),
         verified: c.confidence > 80,
         category: c.category as any,
-        requiresHumanReview: c.confidence < 70
+        requiresHumanReview: c.confidence < 75
       };
     });
 
@@ -536,7 +718,7 @@ Analyze now:`;
 
   private generateSummary(contradictions: any[], stats: any, totalComments: number, username: string): string {
     if (contradictions.length === 0) {
-      return `Multi-model pipeline analysis complete for ${username}. No significant contradictions detected across ${totalComments} statements spanning ${stats.timespan}. User appears to maintain consistent positions across topics and time periods.`;
+      return `Multi-model pipeline analysis complete for ${username}. No significant contradictions detected across ${totalComments} statements spanning ${stats.timespan}. User appears to maintain consistent positions across topics and time periods. Analysis used 5 diverse AI models for comprehensive coverage.`;
     }
 
     const highConfidenceCount = contradictions.filter(c => c.confidenceScore > 80).length;
@@ -549,10 +731,10 @@ Analyze now:`;
     }
     
     if (humanReviewCount > 0) {
-      summary += `${humanReviewCount} findings flagged for human review. `;
+      summary += `${humanReviewCount} findings flagged for human review due to context complexity. `;
     }
     
-    summary += `Analysis used 5 summarizer models + 1 contradiction model for maximum accuracy.`;
+    summary += `Analysis used 5 diverse summarizer models (Mistral, Gemini, DeepSeek, Qwen) + 1 contradiction model for maximum accuracy and bias reduction.`;
 
     return summary;
   }
