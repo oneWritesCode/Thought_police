@@ -35,14 +35,14 @@ class MultiModelPipeline {
   
   // Free models for the pipeline
 private summarizerModels = [
-  'google/gemini-2.5-pro-exp-03-25',
-  'google/gemini-2.5-pro-exp-03-25',
-  'google/gemini-2.5-pro-exp-03-25',
-  'google/gemini-2.5-pro-exp-03-25',
-  'google/gemini-2.5-pro-exp-03-25'
+  'google/gemma-3-4b-it:free',
+  'google/gemma-3-4b-it:free',
+  'google/gemma-3-4b-it:free',
+  'google/gemma-3-4b-it:free',
+  'google/gemma-3-4b-it:free'
 ];
 
-private contradictionModel = 'google/gemini-2.5-pro-exp-03-25';
+private contradictionModel = 'google/gemma-3-4b-it:free';
 
 
   constructor() {
