@@ -209,7 +209,7 @@ class RedditApiService {
       console.log('Fetching full user data for:', username);
       const [user, comments, posts] = await Promise.all([
         this.getUserInfo(username),
-        this.getUserComments(username, 200),
+        this.getUserComments(username, ),
         this.getUserPosts(username, 100),
       ]);
 
