@@ -32,8 +32,8 @@ export class AnalysisService {
         };
       }
 
-      // Fetch user data from Reddit
-      console.log(`Fetching fresh data for ${cleanUsername}`);
+      // Fetch comprehensive user data from Reddit with pagination
+      console.log(`Fetching comprehensive data for ${cleanUsername} with full pagination`);
       const userData = await redditApi.getFullUserData(cleanUsername);
       
       if (!userData.user) {
@@ -45,8 +45,15 @@ export class AnalysisService {
         throw new Error('User has no public comments or posts to analyze');
       }
 
-      // Perform multi-model pipeline analysis
-      console.log(`Starting multi-model pipeline analysis for ${cleanUsername}`);
+      console.log(`Comprehensive data fetched for ${cleanUsername}:`, {
+        comments: userData.comments.length,
+        posts: userData.posts.length,
+        totalContent: userData.comments.length + userData.posts.length,
+        userKarma: userData.user.total_karma
+      });
+
+      // Perform multi-model pipeline analysis on ALL content
+      console.log(`Starting multi-model pipeline analysis for ${cleanUsername} with ${userData.comments.length + userData.posts.length} total items`);
       const reportData = await multiModelPipeline.analyzeUser(
         userData.comments, 
         userData.posts, 
@@ -67,7 +74,12 @@ export class AnalysisService {
         status: 'completed'
       };
 
-      console.log(`Multi-model pipeline analysis complete for ${cleanUsername}: ${analysis.contradictionsFound} contradictions found`);
+      console.log(`Multi-model pipeline analysis complete for ${cleanUsername}:`, {
+        contradictionsFound: analysis.contradictionsFound,
+        averageConfidence: analysis.confidenceScore,
+        totalItemsAnalyzed: userData.comments.length + userData.posts.length
+      });
+      
       return analysis;
 
     } catch (error) {
@@ -112,29 +124,18 @@ export class AnalysisService {
     karma: number;
     accountAge: string;
     recentActivity: boolean;
+    estimatedComments: number;
   }> {
     try {
       const cleanUsername = username.trim().replace(/^u\//, '');
-      const user = await redditApi.getUserInfo(cleanUsername);
-      const comments = await redditApi.getUserComments(cleanUsername, 10);
-      
-      const accountAge = Math.floor((Date.now() / 1000 - user.created_utc) / (24 * 60 * 60));
-      const ageString = accountAge < 30 ? `${accountAge} days` : 
-                       accountAge < 365 ? `${Math.floor(accountAge / 30)} months` : 
-                       `${Math.floor(accountAge / 365)} years`;
-
-      return {
-        exists: true,
-        karma: user.total_karma,
-        accountAge: ageString,
-        recentActivity: comments.length > 0
-      };
+      return await redditApi.getUserPreview(cleanUsername);
     } catch {
       return {
         exists: false,
         karma: 0,
         accountAge: 'Unknown',
-        recentActivity: false
+        recentActivity: false,
+        estimatedComments: 0
       };
     }
   }

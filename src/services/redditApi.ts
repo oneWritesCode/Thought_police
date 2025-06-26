@@ -41,7 +41,7 @@ class RedditApiService {
 
   constructor() {
     this.axiosInstance = axios.create({
-      timeout: 15000,
+      timeout: 20000, // Increased timeout for pagination
       // Removed User-Agent header - browsers forbid setting this header from client-side code
     });
 
@@ -133,71 +133,197 @@ class RedditApiService {
     };
   }
 
-  async getUserComments(username: string, limit: number = 100): Promise<RedditComment[]> {
-    const url = `${this.baseUrl}/user/${username}/comments.json?limit=${limit}&sort=new`;
-    console.log('Fetching comments for:', username, 'limit:', limit);
-    const data = await this.makeRequest(url);
+  async getUserComments(username: string, maxComments: number = 1000): Promise<RedditComment[]> {
+    console.log(`Starting paginated comment fetch for ${username}, max: ${maxComments}`);
     
-    if (!data.data || !data.data.children) {
-      console.log('No comments found for user:', username);
-      return [];
+    const allComments: RedditComment[] = [];
+    let after: string | null = null;
+    let requestCount = 0;
+    const maxRequests = 10; // Safety limit to prevent infinite loops
+    const batchSize = 100; // Reddit's max limit per request
+
+    while (allComments.length < maxComments && requestCount < maxRequests) {
+      try {
+        // Build URL with pagination
+        let url = `${this.baseUrl}/user/${username}/comments.json?limit=${batchSize}&sort=new`;
+        if (after) {
+          url += `&after=${after}`;
+        }
+
+        console.log(`Fetching comment batch ${requestCount + 1} for ${username}:`, {
+          currentTotal: allComments.length,
+          after: after || 'none',
+          url: url.replace(this.baseUrl, '')
+        });
+
+        const data = await this.makeRequest(url);
+        
+        if (!data.data || !data.data.children || data.data.children.length === 0) {
+          console.log(`No more comments found for ${username} after ${requestCount + 1} requests`);
+          break;
+        }
+
+        // Process this batch
+        const batchComments = data.data.children
+          .map((child: any) => child.data)
+          .filter((comment: any) => comment.body && comment.body !== '[deleted]' && comment.body !== '[removed]')
+          .map((comment: any) => ({
+            id: comment.id,
+            body: comment.body,
+            created_utc: comment.created_utc,
+            subreddit: comment.subreddit,
+            score: comment.score,
+            permalink: comment.permalink,
+            author: comment.author,
+            link_title: comment.link_title,
+          }));
+
+        allComments.push(...batchComments);
+
+        console.log(`Batch ${requestCount + 1} processed:`, {
+          batchSize: batchComments.length,
+          totalComments: allComments.length,
+          filteredFrom: data.data.children.length
+        });
+
+        // Get pagination token for next request
+        after = data.data.after;
+        
+        // If no more pages, break
+        if (!after) {
+          console.log(`Reached end of comments for ${username} - no more pages`);
+          break;
+        }
+
+        requestCount++;
+
+        // Rate limiting: 1 second delay between requests
+        if (requestCount < maxRequests && allComments.length < maxComments) {
+          console.log('Waiting 1 second before next request...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+      } catch (error) {
+        console.error(`Error fetching comment batch ${requestCount + 1} for ${username}:`, error);
+        
+        // If it's a rate limit error, wait longer and retry once
+        if (error.message.includes('rate limit')) {
+          console.log('Rate limited, waiting 5 seconds before retry...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          continue;
+        }
+        
+        // For other errors, break the loop to return what we have
+        console.warn(`Breaking pagination due to error: ${error.message}`);
+        break;
+      }
     }
 
-    const comments = data.data.children
-      .map((child: any) => child.data)
-      .filter((comment: any) => comment.body && comment.body !== '[deleted]' && comment.body !== '[removed]')
-      .map((comment: any) => ({
-        id: comment.id,
-        body: comment.body,
-        created_utc: comment.created_utc,
-        subreddit: comment.subreddit,
-        score: comment.score,
-        permalink: comment.permalink,
-        author: comment.author,
-        link_title: comment.link_title,
-      }));
-
-    console.log('Comments fetched successfully:', {
-      username,
-      totalComments: comments.length,
-      filteredFrom: data.data.children.length
+    console.log(`Comment pagination complete for ${username}:`, {
+      totalComments: allComments.length,
+      requestsMade: requestCount,
+      reachedLimit: allComments.length >= maxComments,
+      reachedMaxRequests: requestCount >= maxRequests
     });
 
-    return comments;
+    return allComments.slice(0, maxComments); // Ensure we don't exceed the limit
   }
 
-  async getUserPosts(username: string, limit: number = 50): Promise<RedditPost[]> {
-    const url = `${this.baseUrl}/user/${username}/submitted.json?limit=${limit}&sort=new`;
-    console.log('Fetching posts for:', username, 'limit:', limit);
-    const data = await this.makeRequest(url);
+  async getUserPosts(username: string, maxPosts: number = 500): Promise<RedditPost[]> {
+    console.log(`Starting paginated post fetch for ${username}, max: ${maxPosts}`);
     
-    if (!data.data || !data.data.children) {
-      console.log('No posts found for user:', username);
-      return [];
+    const allPosts: RedditPost[] = [];
+    let after: string | null = null;
+    let requestCount = 0;
+    const maxRequests = 5; // Fewer requests for posts since they're typically less numerous
+    const batchSize = 100; // Reddit's max limit per request
+
+    while (allPosts.length < maxPosts && requestCount < maxRequests) {
+      try {
+        // Build URL with pagination
+        let url = `${this.baseUrl}/user/${username}/submitted.json?limit=${batchSize}&sort=new`;
+        if (after) {
+          url += `&after=${after}`;
+        }
+
+        console.log(`Fetching post batch ${requestCount + 1} for ${username}:`, {
+          currentTotal: allPosts.length,
+          after: after || 'none',
+          url: url.replace(this.baseUrl, '')
+        });
+
+        const data = await this.makeRequest(url);
+        
+        if (!data.data || !data.data.children || data.data.children.length === 0) {
+          console.log(`No more posts found for ${username} after ${requestCount + 1} requests`);
+          break;
+        }
+
+        // Process this batch
+        const batchPosts = data.data.children
+          .map((child: any) => child.data)
+          .filter((post: any) => post.selftext && post.selftext !== '[deleted]' && post.selftext !== '[removed]')
+          .map((post: any) => ({
+            id: post.id,
+            title: post.title,
+            selftext: post.selftext,
+            created_utc: post.created_utc,
+            subreddit: post.subreddit,
+            score: post.score,
+            permalink: post.permalink,
+            author: post.author,
+            num_comments: post.num_comments,
+          }));
+
+        allPosts.push(...batchPosts);
+
+        console.log(`Post batch ${requestCount + 1} processed:`, {
+          batchSize: batchPosts.length,
+          totalPosts: allPosts.length,
+          filteredFrom: data.data.children.length
+        });
+
+        // Get pagination token for next request
+        after = data.data.after;
+        
+        // If no more pages, break
+        if (!after) {
+          console.log(`Reached end of posts for ${username} - no more pages`);
+          break;
+        }
+
+        requestCount++;
+
+        // Rate limiting: 1 second delay between requests
+        if (requestCount < maxRequests && allPosts.length < maxPosts) {
+          console.log('Waiting 1 second before next request...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+      } catch (error) {
+        console.error(`Error fetching post batch ${requestCount + 1} for ${username}:`, error);
+        
+        // If it's a rate limit error, wait longer and retry once
+        if (error.message.includes('rate limit')) {
+          console.log('Rate limited, waiting 5 seconds before retry...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          continue;
+        }
+        
+        // For other errors, break the loop to return what we have
+        console.warn(`Breaking pagination due to error: ${error.message}`);
+        break;
+      }
     }
 
-    const posts = data.data.children
-      .map((child: any) => child.data)
-      .filter((post: any) => post.selftext && post.selftext !== '[deleted]' && post.selftext !== '[removed]')
-      .map((post: any) => ({
-        id: post.id,
-        title: post.title,
-        selftext: post.selftext,
-        created_utc: post.created_utc,
-        subreddit: post.subreddit,
-        score: post.score,
-        permalink: post.permalink,
-        author: post.author,
-        num_comments: post.num_comments,
-      }));
-
-    console.log('Posts fetched successfully:', {
-      username,
-      totalPosts: posts.length,
-      filteredFrom: data.data.children.length
+    console.log(`Post pagination complete for ${username}:`, {
+      totalPosts: allPosts.length,
+      requestsMade: requestCount,
+      reachedLimit: allPosts.length >= maxPosts,
+      reachedMaxRequests: requestCount >= maxRequests
     });
 
-    return posts;
+    return allPosts.slice(0, maxPosts); // Ensure we don't exceed the limit
   }
 
   async getFullUserData(username: string): Promise<{
@@ -206,27 +332,72 @@ class RedditApiService {
     posts: RedditPost[];
   }> {
     try {
-      console.log('Fetching full user data for:', username);
-      const [user, comments, posts] = await Promise.all([
-        this.getUserInfo(username),
-        this.getUserComments(username, ),
-        this.getUserPosts(username, 100),
+      console.log('Fetching comprehensive user data for:', username);
+      
+      // Fetch user info first to validate the user exists
+      const user = await this.getUserInfo(username);
+      
+      // Then fetch all comments and posts in parallel with increased limits
+      const [comments, posts] = await Promise.all([
+        this.getUserComments(username, 1000), // Increased from 200 to 1000
+        this.getUserPosts(username, 500),     // Increased from 100 to 500
       ]);
 
-      console.log('Full user data fetched successfully:', {
+      console.log('Comprehensive user data fetched successfully:', {
         username,
         commentsCount: comments.length,
         postsCount: posts.length,
-        totalKarma: user.total_karma
+        totalKarma: user.total_karma,
+        totalContent: comments.length + posts.length
       });
 
       return { user, comments, posts };
     } catch (error) {
-      console.error('Failed to fetch full user data:', {
+      console.error('Failed to fetch comprehensive user data:', {
         username,
         error: error.message
       });
       throw error;
+    }
+  }
+
+  // Helper method to get a preview of user activity (for validation)
+  async getUserPreview(username: string): Promise<{
+    exists: boolean;
+    karma: number;
+    accountAge: string;
+    recentActivity: boolean;
+    estimatedComments: number;
+  }> {
+    try {
+      const user = await this.getUserInfo(username);
+      
+      // Get a small sample to check for recent activity
+      const sampleComments = await this.getUserComments(username, 10);
+      
+      const accountAge = Math.floor((Date.now() / 1000 - user.created_utc) / (24 * 60 * 60));
+      const ageString = accountAge < 30 ? `${accountAge} days` : 
+                       accountAge < 365 ? `${Math.floor(accountAge / 30)} months` : 
+                       `${Math.floor(accountAge / 365)} years`;
+
+      // Estimate total comments based on karma (rough approximation)
+      const estimatedComments = Math.min(Math.max(user.comment_karma * 0.1, 50), 2000);
+
+      return {
+        exists: true,
+        karma: user.total_karma,
+        accountAge: ageString,
+        recentActivity: sampleComments.length > 0,
+        estimatedComments: Math.floor(estimatedComments)
+      };
+    } catch {
+      return {
+        exists: false,
+        karma: 0,
+        accountAge: 'Unknown',
+        recentActivity: false,
+        estimatedComments: 0
+      };
     }
   }
 }

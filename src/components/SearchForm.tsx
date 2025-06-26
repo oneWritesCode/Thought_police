@@ -13,6 +13,7 @@ interface UserPreview {
   karma: number;
   accountAge: string;
   recentActivity: boolean;
+  estimatedComments: number;
 }
 
 const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) => {
@@ -88,7 +89,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
           Analyze Reddit User
         </h2>
         <p className="text-slate-600 text-center mb-8">
-          Enter a Reddit username to analyze their comment history for contradictions
+          Enter a Reddit username to analyze their complete comment history for contradictions
         </p>
 
         <div className="flex mb-6 bg-slate-100 rounded-lg p-1">
@@ -155,7 +156,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mt-3 p-3 bg-slate-50 rounded-lg border"
+                className="mt-3 p-4 bg-slate-50 rounded-lg border"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -163,13 +164,18 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
                     <div className="text-xs text-slate-600">
                       {userPreview.karma.toLocaleString()} karma • Account age: {userPreview.accountAge}
                     </div>
+                    {userPreview.estimatedComments > 0 && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        ~{userPreview.estimatedComments} comments estimated for analysis
+                      </div>
+                    )}
                   </div>
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
                     userPreview.recentActivity 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {userPreview.recentActivity ? 'Active' : 'Limited Activity'}
+                    {userPreview.recentActivity ? 'Ready for Analysis' : 'Limited Activity'}
                   </div>
                 </div>
               </motion.div>
@@ -197,12 +203,12 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
             {isLoading ? (
               <div className="flex items-center justify-center space-x-2">
                 <Loader className="h-5 w-5 animate-spin" />
-                <span>Analyzing Reddit History...</span>
+                <span>Analyzing Complete Reddit History...</span>
               </div>
             ) : (
               <div className="flex items-center justify-center space-x-2">
                 <Search className="h-5 w-5" />
-                <span>Start Analysis</span>
+                <span>Start Complete Analysis</span>
               </div>
             )}
           </motion.button>
@@ -216,19 +222,20 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
               </svg>
             </div>
             <div>
-              <h3 className="text-sm font-medium text-amber-800">Privacy & Ethics Notice</h3>
+              <h3 className="text-sm font-medium text-amber-800">Complete History Analysis</h3>
               <p className="mt-1 text-sm text-amber-700">
-                We only analyze publicly available Reddit comments and posts. No private information is accessed, stored, or shared. 
-                Analysis is performed for educational and entertainment purposes only.
+                Our enhanced system now fetches ALL available comments and posts (up to 1,000 comments + 500 posts) 
+                using Reddit's pagination API. This ensures comprehensive analysis of the user's complete history, 
+                not just recent activity.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Rate limiting notice */}
+        {/* Analysis details */}
         <div className="mt-4 text-center">
           <p className="text-xs text-slate-500">
-            Analysis may take 30-60 seconds depending on user activity level
+            Analysis includes complete comment history • Multi-model AI pipeline • 30-90 seconds processing time
           </p>
         </div>
       </div>
