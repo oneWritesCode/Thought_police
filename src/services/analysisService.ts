@@ -1,5 +1,5 @@
 import { redditApi } from './redditApi';
-import { contradictionAnalyzer } from './contradictionAnalyzer';
+import { multiModelPipeline } from './multiModelPipeline';
 import { cacheService } from './cacheService';
 import { Analysis } from '../types';
 
@@ -45,9 +45,9 @@ export class AnalysisService {
         throw new Error('User has no public comments or posts to analyze');
       }
 
-      // Perform smart contradiction analysis with OpenRouter
-      console.log(`Starting smart analysis for ${cleanUsername}`);
-      const reportData = await contradictionAnalyzer.analyzeUser(
+      // Perform multi-model pipeline analysis
+      console.log(`Starting multi-model pipeline analysis for ${cleanUsername}`);
+      const reportData = await multiModelPipeline.analyzeUser(
         userData.comments, 
         userData.posts, 
         cleanUsername
@@ -67,7 +67,7 @@ export class AnalysisService {
         status: 'completed'
       };
 
-      console.log(`Analysis complete for ${cleanUsername}: ${analysis.contradictionsFound} contradictions found`);
+      console.log(`Multi-model pipeline analysis complete for ${cleanUsername}: ${analysis.contradictionsFound} contradictions found`);
       return analysis;
 
     } catch (error) {
