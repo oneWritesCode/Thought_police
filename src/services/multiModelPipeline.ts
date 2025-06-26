@@ -36,14 +36,14 @@ class MultiModelPipeline {
   // Diverse free models for summarization (different architectures and training)
   private summarizerModels = [
     'mistralai/mistral-small-3.2-24b-instruct:free',  // Mistral architecture
-    'google/gemini-2.0-flash-exp:free',               // Google's Gemini
-    'deepseek/deepseek-r1-0528-qwen3-8b:free',       // DeepSeek reasoning model
-    'qwen/qwq-32b:free',                              // Qwen large model
+    'mistralai/mistral-small-3.2-24b-instruct:free',               // Google's Gemini
+    'mistralai/mistral-small-3.2-24b-instruct:free',       // DeepSeek reasoning model
+    'mistralai/mistral-small-3.2-24b-instruct:free',                              // Qwen large model
     'mistralai/mistral-small-3.2-24b-instruct:free'  // Fallback to strongest free model
   ];
 
   // Stronger model for contradiction analysis
-  private contradictionModel = 'google/gemini-2.0-flash-exp:free';
+  private contradictionModel = 'mistralai/mistral-small-3.2-24b-instruct:free';
 
   constructor() {
     try {
