@@ -34,15 +34,16 @@ class MultiModelPipeline {
   private isAvailable: boolean = false;
   
   // Free models for the pipeline
-  private summarizerModels = [
-    'mistralai/mistral-small-3.2-24b-instruct:free',
-    'google/gemini-2.0-flash-exp:free',
-    'deepseek/deepseek-r1-0528-qwen3-8b:free',
-    'qwen/qwq-32b:free',
-    'mistralai/mistral-small-3.2-24b-instruct:free' // Use first model twice for 5 total
-  ];
-  
-  private contradictionModel = 'google/gemini-2.0-flash-exp:free';
+private summarizerModels = [
+  'google/gemini-2.5-pro-exp-03-25',
+  'google/gemini-2.5-pro-exp-03-25',
+  'google/gemini-2.5-pro-exp-03-25',
+  'google/gemini-2.5-pro-exp-03-25',
+  'google/gemini-2.5-pro-exp-03-25'
+];
+
+private contradictionModel = 'google/gemini-2.5-pro-exp-03-25';
+
 
   constructor() {
     try {
