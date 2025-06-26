@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, ExternalLink, Loader, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Search, User, ExternalLink, Loader, CheckCircle, XCircle, AlertCircle, DollarSign, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { analysisService } from '../services/analysisService';
 
@@ -22,6 +22,13 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
   const [userPreview, setUserPreview] = useState<UserPreview | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
+  const [budgetStatus, setBudgetStatus] = useState<any>(null);
+
+  // Load budget status
+  useEffect(() => {
+    const budget = analysisService.getBudgetStats();
+    setBudgetStatus(budget.budget);
+  }, []);
 
   // Debounced username validation
   useEffect(() => {
@@ -91,6 +98,44 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
         <p className="text-slate-600 text-center mb-8">
           Enter a Reddit username to analyze their complete comment history for contradictions
         </p>
+
+        {/* Budget Status */}
+        {budgetStatus && (
+          <div className={`mb-6 p-4 rounded-lg border ${
+            budgetStatus.isExceeded ? 'bg-red-50 border-red-200' :
+            budgetStatus.isWarning ? 'bg-amber-50 border-amber-200' :
+            'bg-green-50 border-green-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <DollarSign className={`h-4 w-4 ${
+                  budgetStatus.isExceeded ? 'text-red-600' :
+                  budgetStatus.isWarning ? 'text-amber-600' :
+                  'text-green-600'
+                }`} />
+                <span className={`text-sm font-medium ${
+                  budgetStatus.isExceeded ? 'text-red-800' :
+                  budgetStatus.isWarning ? 'text-amber-800' :
+                  'text-green-800'
+                }`}>
+                  AI Budget: ${budgetStatus.spent.toFixed(2)} / ${budgetStatus.remaining.toFixed(2)} remaining
+                </span>
+              </div>
+              <div className={`text-xs px-2 py-1 rounded ${
+                budgetStatus.isExceeded ? 'bg-red-100 text-red-700' :
+                budgetStatus.isWarning ? 'bg-amber-100 text-amber-700' :
+                'bg-green-100 text-green-700'
+              }`}>
+                {budgetStatus.percentage.toFixed(1)}% used
+              </div>
+            </div>
+            {budgetStatus.isExceeded && (
+              <p className="text-xs text-red-600 mt-2">
+                Budget exceeded. Analysis will use enhanced fallback methods.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex mb-6 bg-slate-100 rounded-lg p-1">
           <button
@@ -165,8 +210,9 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
                       {userPreview.karma.toLocaleString()} karma • Account age: {userPreview.accountAge}
                     </div>
                     {userPreview.estimatedComments > 0 && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        ~{userPreview.estimatedComments} comments estimated for analysis
+                      <div className="text-xs text-blue-600 mt-1 flex items-center space-x-1">
+                        <Zap className="h-3 w-3" />
+                        <span>~{userPreview.estimatedComments} comments estimated for comprehensive analysis</span>
                       </div>
                     )}
                   </div>
@@ -208,26 +254,26 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
             ) : (
               <div className="flex items-center justify-center space-x-2">
                 <Search className="h-5 w-5" />
-                <span>Start Complete Analysis</span>
+                <span>Start Comprehensive Analysis</span>
               </div>
             )}
           </motion.button>
         </form>
 
-        <div className="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">
+        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+              <Zap className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-amber-800">Complete History Analysis</h3>
-              <p className="mt-1 text-sm text-amber-700">
-                Our enhanced system now fetches ALL available comments and posts (up to 1,000 comments + 500 posts) 
-                using Reddit's pagination API. This ensures comprehensive analysis of the user's complete history, 
-                not just recent activity.
+              <h3 className="text-sm font-medium text-blue-800">Unlimited History Analysis</h3>
+              <p className="mt-1 text-sm text-blue-700">
+                Our enhanced system now fetches ALL available comments and posts using Reddit's pagination API + Pushshift for historical data. 
+                This ensures comprehensive analysis of the user's complete history (up to 5,000+ comments), not just recent activity.
               </p>
+              <div className="mt-2 text-xs text-blue-600">
+                <strong>Features:</strong> Streaming pagination • Smart deduplication • Budget-aware AI models • Enhanced fallback analysis
+              </div>
             </div>
           </div>
         </div>
@@ -235,7 +281,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
         {/* Analysis details */}
         <div className="mt-4 text-center">
           <p className="text-xs text-slate-500">
-            Analysis includes complete comment history • Multi-model AI pipeline • 30-90 seconds processing time
+            Optimized 2-stage pipeline • Token budget management • Persistent caching • 30-90 seconds processing time
           </p>
         </div>
       </div>

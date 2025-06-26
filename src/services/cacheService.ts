@@ -2,100 +2,124 @@ interface CacheEntry {
   data: any;
   timestamp: number;
   expiresAt: number;
+  contentHash: string;
+  version: string;
+}
+
+interface CacheStats {
+  totalEntries: number;
+  validEntries: number;
+  expiredEntries: number;
+  totalSize: number;
+  hitRate: number;
 }
 
 class CacheService {
   private cache = new Map<string, CacheEntry>();
   private readonly DEFAULT_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+  private readonly CACHE_VERSION = '2.0';
+  private readonly MAX_CACHE_SIZE = 50; // Maximum number of cached analyses
+  private hits = 0;
+  private misses = 0;
 
-  /**
-   * Store analysis result in cache
-   */
-  setAnalysis(username: string, data: any, ttl: number = this.DEFAULT_TTL): void {
-    const key = this.getAnalysisKey(username);
-    const entry: CacheEntry = {
-      data,
-      timestamp: Date.now(),
-      expiresAt: Date.now() + ttl
-    };
-    
-    this.cache.set(key, entry);
-    console.log(`Cached analysis for user: ${username}, expires in ${Math.round(ttl / (24 * 60 * 60 * 1000))} days`);
-    
-    // Clean up expired entries periodically
-    this.cleanupExpired();
+  constructor() {
+    this.loadFromStorage();
+    this.setupPeriodicCleanup();
   }
 
-  /**
-   * Get cached analysis result
-   */
-  getAnalysis(username: string): any | null {
-    const key = this.getAnalysisKey(username);
-    const entry = this.cache.get(key);
-    
-    if (!entry) {
-      return null;
-    }
-    
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      console.log(`Cache expired for user: ${username}`);
-      return null;
-    }
-    
-    console.log(`Cache hit for user: ${username}, age: ${Math.round((Date.now() - entry.timestamp) / (60 * 60 * 1000))} hours`);
-    return entry.data;
-  }
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem('thoughtPoliceCache');
+      if (stored) {
+        const data = JSON.parse(stored);
+        
+        // Validate cache version
+        if (data.version !== this.CACHE_VERSION) {
+          console.log('Cache version mismatch, clearing cache');
+          this.clearAll();
+          return;
+        }
 
-  /**
-   * Check if analysis is cached and still valid
-   */
-  hasValidAnalysis(username: string): boolean {
-    return this.getAnalysis(username) !== null;
-  }
+        // Load entries
+        if (data.entries) {
+          for (const [key, entry] of Object.entries(data.entries)) {
+            this.cache.set(key, entry as CacheEntry);
+          }
+        }
 
-  /**
-   * Clear cache for specific user
-   */
-  clearAnalysis(username: string): void {
-    const key = this.getAnalysisKey(username);
-    this.cache.delete(key);
-    console.log(`Cleared cache for user: ${username}`);
-  }
-
-  /**
-   * Clear all cached data
-   */
-  clearAll(): void {
-    this.cache.clear();
-    console.log('Cleared all cached analyses');
-  }
-
-  /**
-   * Get cache statistics
-   */
-  getStats(): { totalEntries: number; validEntries: number; expiredEntries: number } {
-    const now = Date.now();
-    let validEntries = 0;
-    let expiredEntries = 0;
-    
-    this.cache.forEach(entry => {
-      if (now <= entry.expiresAt) {
-        validEntries++;
-      } else {
-        expiredEntries++;
+        console.log(`Loaded ${this.cache.size} cache entries from storage`);
+        this.cleanupExpired();
       }
-    });
-    
-    return {
-      totalEntries: this.cache.size,
-      validEntries,
-      expiredEntries
-    };
+    } catch (error) {
+      console.warn('Failed to load cache from storage:', error);
+      this.clearAll();
+    }
   }
 
-  private getAnalysisKey(username: string): string {
-    return `analysis:${username.toLowerCase()}`;
+  private saveToStorage(): void {
+    try {
+      const data = {
+        version: this.CACHE_VERSION,
+        entries: Object.fromEntries(this.cache.entries()),
+        lastSaved: Date.now()
+      };
+
+      localStorage.setItem('thoughtPoliceCache', JSON.stringify(data));
+    } catch (error) {
+      console.warn('Failed to save cache to storage:', error);
+      
+      // If storage is full, try to free up space
+      if (error.name === 'QuotaExceededError') {
+        this.evictOldest(Math.floor(this.cache.size / 2));
+        try {
+          localStorage.setItem('thoughtPoliceCache', JSON.stringify(data));
+        } catch {
+          console.warn('Cache storage still full after eviction');
+        }
+      }
+    }
+  }
+
+  private setupPeriodicCleanup(): void {
+    // Clean up expired entries every 10 minutes
+    setInterval(() => {
+      this.cleanupExpired();
+    }, 10 * 60 * 1000);
+  }
+
+  private generateContentHash(comments: any[], posts: any[]): string {
+    // Create a hash based on the latest content timestamps
+    const latestComment = comments.length > 0 ? Math.max(...comments.map(c => c.created_utc)) : 0;
+    const latestPost = posts.length > 0 ? Math.max(...posts.map(p => p.created_utc)) : 0;
+    const latest = Math.max(latestComment, latestPost);
+    
+    // Include content count for additional validation
+    const contentSignature = `${latest}-${comments.length}-${posts.length}`;
+    
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < contentSignature.length; i++) {
+      const char = contentSignature.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    return Math.abs(hash).toString(36);
+  }
+
+  private getAnalysisKey(username: string, contentHash: string): string {
+    return `analysis:${username.toLowerCase()}:${contentHash}`;
+  }
+
+  private evictOldest(count: number): void {
+    const entries = Array.from(this.cache.entries())
+      .sort(([,a], [,b]) => a.timestamp - b.timestamp);
+    
+    for (let i = 0; i < Math.min(count, entries.length); i++) {
+      this.cache.delete(entries[i][0]);
+    }
+    
+    console.log(`Evicted ${Math.min(count, entries.length)} oldest cache entries`);
   }
 
   private cleanupExpired(): void {
@@ -111,7 +135,168 @@ class CacheService {
     
     if (cleanedCount > 0) {
       console.log(`Cleaned up ${cleanedCount} expired cache entries`);
+      this.saveToStorage();
     }
+  }
+
+  /**
+   * Store analysis result in cache with content-based invalidation
+   */
+  setAnalysis(username: string, data: any, comments: any[] = [], posts: any[] = [], ttl: number = this.DEFAULT_TTL): void {
+    const contentHash = this.generateContentHash(comments, posts);
+    const key = this.getAnalysisKey(username, contentHash);
+    
+    const entry: CacheEntry = {
+      data,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + ttl,
+      contentHash,
+      version: this.CACHE_VERSION
+    };
+    
+    // Enforce cache size limit
+    if (this.cache.size >= this.MAX_CACHE_SIZE) {
+      this.evictOldest(1);
+    }
+    
+    this.cache.set(key, entry);
+    console.log(`Cached analysis for user: ${username}, hash: ${contentHash}, expires in ${Math.round(ttl / (24 * 60 * 60 * 1000))} days`);
+    
+    this.saveToStorage();
+  }
+
+  /**
+   * Get cached analysis result with content validation
+   */
+  getAnalysis(username: string, comments: any[] = [], posts: any[] = []): any | null {
+    const contentHash = this.generateContentHash(comments, posts);
+    const key = this.getAnalysisKey(username, contentHash);
+    const entry = this.cache.get(key);
+    
+    if (!entry) {
+      this.misses++;
+      
+      // Check if we have any cache for this user (with different content)
+      const userKeys = Array.from(this.cache.keys()).filter(k => k.startsWith(`analysis:${username.toLowerCase()}:`));
+      if (userKeys.length > 0) {
+        console.log(`Cache miss for user: ${username} - content has changed (hash: ${contentHash})`);
+        
+        // Clean up old entries for this user
+        userKeys.forEach(oldKey => this.cache.delete(oldKey));
+        this.saveToStorage();
+      }
+      
+      return null;
+    }
+    
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      this.misses++;
+      console.log(`Cache expired for user: ${username}`);
+      this.saveToStorage();
+      return null;
+    }
+    
+    this.hits++;
+    const age = Math.round((Date.now() - entry.timestamp) / (60 * 60 * 1000));
+    console.log(`Cache hit for user: ${username}, age: ${age} hours, hash: ${contentHash}`);
+    return entry.data;
+  }
+
+  /**
+   * Check if analysis is cached and still valid
+   */
+  hasValidAnalysis(username: string, comments: any[] = [], posts: any[] = []): boolean {
+    return this.getAnalysis(username, comments, posts) !== null;
+  }
+
+  /**
+   * Clear cache for specific user (all content versions)
+   */
+  clearAnalysis(username: string): void {
+    const userKeys = Array.from(this.cache.keys()).filter(k => 
+      k.startsWith(`analysis:${username.toLowerCase()}:`)
+    );
+    
+    userKeys.forEach(key => this.cache.delete(key));
+    console.log(`Cleared ${userKeys.length} cache entries for user: ${username}`);
+    this.saveToStorage();
+  }
+
+  /**
+   * Clear all cached data
+   */
+  clearAll(): void {
+    this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
+    console.log('Cleared all cached analyses');
+    this.saveToStorage();
+  }
+
+  /**
+   * Get comprehensive cache statistics
+   */
+  getStats(): CacheStats {
+    const now = Date.now();
+    let validEntries = 0;
+    let expiredEntries = 0;
+    let totalSize = 0;
+    
+    this.cache.forEach(entry => {
+      if (now <= entry.expiresAt) {
+        validEntries++;
+      } else {
+        expiredEntries++;
+      }
+      
+      // Estimate size (rough approximation)
+      totalSize += JSON.stringify(entry).length;
+    });
+    
+    const totalRequests = this.hits + this.misses;
+    const hitRate = totalRequests > 0 ? (this.hits / totalRequests) * 100 : 0;
+    
+    return {
+      totalEntries: this.cache.size,
+      validEntries,
+      expiredEntries,
+      totalSize,
+      hitRate
+    };
+  }
+
+  /**
+   * Get cache entries for debugging
+   */
+  getDebugInfo(): Array<{
+    key: string;
+    username: string;
+    contentHash: string;
+    age: string;
+    size: number;
+    isExpired: boolean;
+  }> {
+    const now = Date.now();
+    
+    return Array.from(this.cache.entries()).map(([key, entry]) => {
+      const parts = key.split(':');
+      const username = parts[1] || 'unknown';
+      const contentHash = parts[2] || 'unknown';
+      const ageMs = now - entry.timestamp;
+      const age = ageMs < 60000 ? `${Math.round(ageMs / 1000)}s` :
+                  ageMs < 3600000 ? `${Math.round(ageMs / 60000)}m` :
+                  `${Math.round(ageMs / 3600000)}h`;
+      
+      return {
+        key,
+        username,
+        contentHash,
+        age,
+        size: JSON.stringify(entry).length,
+        isExpired: now > entry.expiresAt
+      };
+    }).sort((a, b) => a.username.localeCompare(b.username));
   }
 }
 

@@ -2,6 +2,7 @@ import { RedditComment, RedditPost } from './redditApi';
 import { Contradiction, AnalysisReport } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { cacheService } from './cacheService';
+import { tokenBudget } from './tokenBudget';
 
 interface CommentWithId {
   id: string;
@@ -32,72 +33,81 @@ class MultiModelPipeline {
   private apiKey: string | null = null;
   private baseUrl = 'https://openrouter.ai/api/v1/chat/completions';
   private isAvailable: boolean = false;
+  private verbose: boolean = false;
   
-  // Diverse free models for summarization (different architectures and training)
-  private summarizerModels = [
-    'mistralai/mistral-small-3.2-24b-instruct:free',  // Mistral architecture
-    'mistralai/mistral-small-3.2-24b-instruct:free',               // Google's Gemini
-    'mistralai/mistral-small-3.2-24b-instruct:free',       // DeepSeek reasoning model
-    'mistralai/mistral-small-3.2-24b-instruct:free',                              // Qwen large model
-    'mistralai/mistral-small-3.2-24b-instruct:free'  // Fallback to strongest free model
-  ];
-
-  // Stronger model for contradiction analysis
-  private contradictionModel = 'mistralai/mistral-small-3.2-24b-instruct:free';
+  // Optimized model selection - single strong model for summarization
+  private summarizerModel = 'mistralai/mistral-7b-instruct:free';
+  private contradictionModel = 'mistralai/mistral-7b-instruct:free';
+  
+  // Fallback to stronger models if budget allows
+  private premiumSummarizerModel = 'mistralai/mixtral-8x7b-instruct';
+  private premiumContradictionModel = 'anthropic/claude-3.5-sonnet';
 
   constructor() {
     try {
       this.apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
       if (!this.apiKey) {
-        console.warn('OpenRouter API key not found - pipeline unavailable');
+        console.warn('OpenRouter API key not found - using fallback analysis');
         this.isAvailable = false;
         return;
       }
       
       this.isAvailable = true;
-      console.log('Multi-Model Pipeline initialized with diverse models:', this.summarizerModels);
+      this.debug('Multi-Model Pipeline initialized with optimized models');
     } catch (error) {
       console.warn('Failed to initialize Multi-Model Pipeline:', error);
       this.isAvailable = false;
     }
   }
 
+  setVerbose(verbose: boolean) {
+    this.verbose = verbose;
+  }
+
+  private debug(...args: any[]) {
+    if (this.verbose) {
+      console.log('[Pipeline]', ...args);
+    }
+  }
+
   async analyzeUser(comments: RedditComment[], posts: RedditPost[], username: string): Promise<AnalysisReport> {
     try {
-      console.log(`Starting multi-model pipeline analysis for ${username}: ${comments.length} comments, ${posts.length} posts`);
+      this.debug(`Starting optimized pipeline analysis for ${username}: ${comments.length} comments, ${posts.length} posts`);
       
-      // Check cache first
-      const cachedResult = cacheService.getAnalysis(username);
+      // Check cache first with content validation
+      const cachedResult = cacheService.getAnalysis(username, comments, posts);
       if (cachedResult) {
-        console.log(`Returning cached analysis for ${username}`);
+        this.debug(`Returning cached analysis for ${username}`);
         return cachedResult;
       }
 
-      // Convert all content to comments with IDs and deduplicate
+      // Convert and deduplicate all content
       const allComments = this.convertAndDeduplicateComments(comments, posts);
-      console.log(`Processing ${allComments.length} unique items (after deduplication)`);
+      this.debug(`Processing ${allComments.length} unique items (after deduplication)`);
 
       if (allComments.length === 0) {
         return this.createEmptyReport(username);
       }
 
-      // Stage 1: Divide comments into 5 batches for summarization
-      const batches = this.divideToBatches(allComments, 5);
-      console.log(`Divided into ${batches.length} batches:`, batches.map(b => b.length));
+      // Check budget before proceeding
+      const budgetStatus = tokenBudget.getBudgetStatus();
+      if (budgetStatus.isExceeded) {
+        this.debug('Budget exceeded, using fallback analysis');
+        return this.createFallbackReport(allComments, username);
+      }
 
-      // Stage 2: Summarize each batch with different models
-      const allSummaries = await this.summarizeAllBatches(batches);
-      console.log(`Generated ${allSummaries.length} summaries`);
+      // Optimized 2-stage pipeline: Summarize → Analyze Contradictions
+      const summaries = await this.optimizedSummarization(allComments);
+      this.debug(`Generated ${summaries.length} summaries`);
 
-      // Stage 3: Analyze contradictions from all summaries
-      const contradictions = await this.analyzeContradictions(allSummaries);
-      console.log(`Found ${contradictions.length} contradictions`);
+      const contradictions = await this.analyzeContradictions(summaries);
+      this.debug(`Found ${contradictions.length} contradictions`);
 
       // Generate comprehensive report
-      const report = this.generateReport(allComments, allSummaries, contradictions, username);
+      const report = this.generateReport(allComments, summaries, contradictions, username);
       
-      // Cache the result
-      cacheService.setAnalysis(username, report);
+      // Cache the result with content hash
+      cacheService.setAnalysis(username, report, comments, posts);
       
       return report;
     } catch (error) {
@@ -142,103 +152,101 @@ class MultiModelPipeline {
       }
     });
 
-    // Deduplicate similar content (cross-posts, reposts)
-    const deduplicated = this.deduplicateSimilarContent(allItems);
-    console.log(`Deduplicated from ${allItems.length} to ${deduplicated.length} items`);
+    // Enhanced deduplication with clustering
+    const deduplicated = this.smartDeduplication(allItems);
+    this.debug(`Deduplicated from ${allItems.length} to ${deduplicated.length} items`);
 
-    // Sort by date (oldest first)
+    // Sort by date (oldest first) for temporal analysis
     return deduplicated.sort((a, b) => a.date - b.date);
   }
 
-  private deduplicateSimilarContent(items: CommentWithId[]): CommentWithId[] {
-    const seen = new Map<string, CommentWithId>();
-    const threshold = 0.85; // 85% similarity threshold
-
+  private smartDeduplication(items: CommentWithId[]): CommentWithId[] {
+    const clusters = new Map<string, CommentWithId[]>();
+    
+    // Group similar content
     for (const item of items) {
-      const normalizedText = this.normalizeText(item.text);
-      let isDuplicate = false;
-
-      // Check against existing items for similarity
-      for (const [existingText, existingItem] of seen.entries()) {
-        const similarity = this.calculateSimilarity(normalizedText, existingText);
-        if (similarity > threshold) {
-          // Keep the one with higher score or more recent
-          if (item.score > existingItem.score || item.date > existingItem.date) {
-            seen.delete(existingText);
-            seen.set(normalizedText, item);
-          }
-          isDuplicate = true;
-          break;
-        }
+      const signature = this.createContentSignature(item.text);
+      
+      if (!clusters.has(signature)) {
+        clusters.set(signature, []);
       }
+      clusters.get(signature)!.push(item);
+    }
 
-      if (!isDuplicate) {
-        seen.set(normalizedText, item);
+    // Select best representative from each cluster
+    const deduplicated: CommentWithId[] = [];
+    
+    for (const cluster of clusters.values()) {
+      if (cluster.length === 1) {
+        deduplicated.push(cluster[0]);
+      } else {
+        // Choose the highest scored or most recent item from cluster
+        const best = cluster.reduce((best, current) => {
+          if (current.score > best.score) return current;
+          if (current.score === best.score && current.date > best.date) return current;
+          return best;
+        });
+        deduplicated.push(best);
       }
     }
 
-    return Array.from(seen.values());
+    return deduplicated;
   }
 
-  private normalizeText(text: string): string {
-    return text.toLowerCase()
+  private createContentSignature(text: string): string {
+    // Create a signature for clustering similar content
+    const normalized = text.toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+    
+    // Use first 100 characters as signature
+    return normalized.substring(0, 100);
   }
 
-  private calculateSimilarity(text1: string, text2: string): number {
-    const words1 = new Set(text1.split(' '));
-    const words2 = new Set(text2.split(' '));
-    
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
-    const union = new Set([...words1, ...words2]);
-    
-    return intersection.size / union.size; // Jaccard similarity
-  }
-
-  private divideToBatches(comments: CommentWithId[], numBatches: number): CommentWithId[][] {
-    const batches: CommentWithId[][] = [];
-    const batchSize = Math.ceil(comments.length / numBatches);
-    
-    for (let i = 0; i < numBatches; i++) {
-      const start = i * batchSize;
-      const end = Math.min(start + batchSize, comments.length);
-      const batch = comments.slice(start, end);
-      
-      if (batch.length > 0) {
-        batches.push(batch);
-      }
-    }
-    
-    return batches;
-  }
-
-  private async summarizeAllBatches(batches: CommentWithId[][]): Promise<SummaryResult[]> {
-    const allSummaries: SummaryResult[] = [];
-    
+  private async optimizedSummarization(comments: CommentWithId[]): Promise<SummaryResult[]> {
     if (!this.isAvailable) {
-      // Fallback: create basic summaries without AI
-      return this.createFallbackSummaries(batches.flat());
+      return this.createFallbackSummaries(comments);
     }
 
-    // Process each batch with a different model
+    // Dynamic batch sizing based on token limits
+    const maxTokensPerBatch = 3000; // Conservative limit
+    const batches = this.createDynamicBatches(comments, maxTokensPerBatch);
+    
+    this.debug(`Created ${batches.length} dynamic batches for summarization`);
+
+    const allSummaries: SummaryResult[] = [];
+
+    // Choose model based on budget
+    const budgetStatus = tokenBudget.getBudgetStatus();
+    const useModel = budgetStatus.remaining > 1.0 ? this.premiumSummarizerModel : this.summarizerModel;
+    
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
-      const model = this.summarizerModels[i % this.summarizerModels.length];
       
       try {
-        console.log(`Summarizing batch ${i + 1}/${batches.length} with model: ${model} (${batch.length} items)`);
-        const batchSummaries = await this.summarizeBatch(batch, model);
+        this.debug(`Summarizing batch ${i + 1}/${batches.length} with ${useModel} (${batch.length} items)`);
+        
+        // Check if we can afford this request
+        const prompt = this.buildOptimizedSummarizationPrompt(batch);
+        const estimatedTokens = tokenBudget.estimateTokens(prompt);
+        
+        if (!tokenBudget.canAfford(useModel, estimatedTokens)) {
+          this.debug('Budget insufficient, switching to fallback');
+          const fallbackSummaries = this.createFallbackSummaries(batch);
+          allSummaries.push(...fallbackSummaries);
+          continue;
+        }
+
+        const batchSummaries = await this.summarizeBatch(batch, useModel);
         allSummaries.push(...batchSummaries);
         
-        // Add delay between batches to respect rate limits
+        // Rate limiting
         if (i < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
-        console.warn(`Batch ${i + 1} summarization failed with ${model}:`, error);
-        // Add fallback summaries for failed batch
+        this.debug(`Batch ${i + 1} summarization failed:`, error);
         const fallbackSummaries = this.createFallbackSummaries(batch);
         allSummaries.push(...fallbackSummaries);
       }
@@ -247,46 +255,73 @@ class MultiModelPipeline {
     return allSummaries;
   }
 
+  private createDynamicBatches(comments: CommentWithId[], maxTokensPerBatch: number): CommentWithId[][] {
+    const batches: CommentWithId[][] = [];
+    let currentBatch: CommentWithId[] = [];
+    let currentTokens = 0;
+
+    for (const comment of comments) {
+      const commentTokens = tokenBudget.estimateTokens(comment.text);
+      
+      // If adding this comment would exceed the limit, start a new batch
+      if (currentTokens + commentTokens > maxTokensPerBatch && currentBatch.length > 0) {
+        batches.push(currentBatch);
+        currentBatch = [comment];
+        currentTokens = commentTokens;
+      } else {
+        currentBatch.push(comment);
+        currentTokens += commentTokens;
+      }
+    }
+
+    // Add the last batch if it has content
+    if (currentBatch.length > 0) {
+      batches.push(currentBatch);
+    }
+
+    return batches;
+  }
+
+  private buildOptimizedSummarizationPrompt(batch: CommentWithId[]): string {
+    const commentsText = batch.map(comment => {
+      const dateStr = new Date(comment.date * 1000).toLocaleDateString();
+      return `${comment.id} (r/${comment.subreddit}, ${dateStr}): "${comment.text.substring(0, 500)}"`;
+    }).join('\n\n');
+
+    return `You are an expert content analyzer specializing in detecting ideological inconsistencies and opinion changes in social media content.
+
+TASK: Summarize each comment below into a concise statement that preserves:
+- Core beliefs and opinions
+- Emotional tone and intensity  
+- Political/ideological stance
+- Sentiment (positive/negative/neutral)
+
+CRITICAL: Focus on extracting viewpoints that could potentially contradict other statements. Include context clues about the user's stance on topics.
+
+Comments to analyze:
+${commentsText}
+
+OUTPUT FORMAT (one line per comment):
+ID-X: [Concise summary preserving beliefs, tone, and stance]
+
+EXAMPLES:
+ID-32: Strongly supports gun rights, believes self-defense is fundamental (passionate, libertarian stance)
+ID-33: Advocates for strict gun control, calls for assault weapon bans (emotional, progressive stance)
+ID-34: Dismisses climate change concerns as overblown media hype (skeptical, conservative tone)
+
+Analyze each comment now:`;
+  }
+
   private async summarizeBatch(batch: CommentWithId[], model: string): Promise<SummaryResult[]> {
-    const prompt = this.buildSummarizationPrompt(batch);
+    const prompt = this.buildOptimizedSummarizationPrompt(batch);
     
     try {
       const response = await this.makeOpenRouterRequest(model, prompt);
       return this.parseSummarizationResponse(response, batch);
     } catch (error) {
-      console.warn(`Summarization failed for model ${model}:`, error);
+      this.debug(`Summarization failed for model ${model}:`, error);
       return this.createFallbackSummaries(batch);
     }
-  }
-
-  private buildSummarizationPrompt(batch: CommentWithId[]): string {
-    const commentsText = batch.map(comment => {
-      const dateStr = new Date(comment.date * 1000).toLocaleDateString();
-      return `${comment.id} (r/${comment.subreddit}, ${dateStr}): "${comment.text}"`;
-    }).join('\n\n');
-
-    return `You are part of a distributed AI pipeline designed to analyze a Reddit user's full comment history for contradictions or ideological inconsistencies. You are one of 5 summarizer models in Stage 1.
-
-Your task is to summarize each comment into a short, clear, context-rich statement while preserving:
-- Tone (e.g., sarcasm, aggression, passivity, enthusiasm)
-- Beliefs or ideologies (e.g., pro/anti-gun, political stances, moral positions)
-- Sentiment (positive/negative/neutral)
-- Emotional intensity (mild, strong, passionate, etc.)
-
-CRITICAL: Always preserve tone and intent explicitly in the summary. Include emotional cues and ideological markers where possible. Consider the subreddit context for tone detection.
-
-Comments to summarize:
-${commentsText}
-
-Output format (one line per comment):
-ID-X: [Clear summary preserving tone, beliefs, sentiment, and emotional intensity]
-
-Examples:
-ID-32: Believes violence can be justified in some cases (serious, measured tone).
-ID-33: Strongly opposes violence in all circumstances (passionate, absolute stance, moral conviction).
-ID-34: Sarcastically mocks people who complain about pineapple on pizza (dismissive, humorous tone).
-
-Summarize each comment now:`;
   }
 
   private async analyzeContradictions(summaries: SummaryResult[]): Promise<ContradictionResult[]> {
@@ -295,51 +330,56 @@ Summarize each comment now:`;
     }
 
     try {
-      console.log(`Analyzing contradictions from ${summaries.length} summaries using ${this.contradictionModel}`);
-      const prompt = this.buildContradictionPrompt(summaries);
-      const response = await this.makeOpenRouterRequest(this.contradictionModel, prompt);
+      this.debug(`Analyzing contradictions from ${summaries.length} summaries`);
+      
+      // Choose model based on budget
+      const budgetStatus = tokenBudget.getBudgetStatus();
+      const useModel = budgetStatus.remaining > 0.5 ? this.premiumContradictionModel : this.contradictionModel;
+      
+      const prompt = this.buildOptimizedContradictionPrompt(summaries);
+      const estimatedTokens = tokenBudget.estimateTokens(prompt);
+      
+      if (!tokenBudget.canAfford(useModel, estimatedTokens)) {
+        this.debug('Budget insufficient for contradiction analysis, using fallback');
+        return this.createFallbackContradictions(summaries);
+      }
+
+      const response = await this.makeOpenRouterRequest(useModel, prompt);
       return this.parseContradictionResponse(response, summaries);
     } catch (error) {
-      console.warn('Contradiction analysis failed:', error);
+      this.debug('Contradiction analysis failed:', error);
       return this.createFallbackContradictions(summaries);
     }
   }
 
-  private buildContradictionPrompt(summaries: SummaryResult[]): string {
+  private buildOptimizedContradictionPrompt(summaries: SummaryResult[]): string {
     const summariesText = summaries.map(s => 
       `${s.id}: ${s.summary}`
     ).join('\n');
 
-    return `You are the contradiction analysis model (Stage 2) in a distributed AI pipeline. You have received summarized statements from 5 different models, each tagged with their original comment ID.
+    return `You are an expert at detecting ideological inconsistencies and contradictory viewpoints in user-generated content.
 
-Your task is to identify any contradictions, shifts in belief, or inconsistency in tone or opinion across these summaries.
+TASK: Identify genuine contradictions between these summarized statements. Focus on:
+- Direct opposing viewpoints on the same topic
+- Ideological flip-flops without reasonable explanation  
+- Contradictory moral or ethical positions
+- Inconsistent political stances
 
-IMPORTANT: Only flag contradictions that show **reversal of opinion**, **inconsistency of belief**, or **emotional flips on the same topic**. Do not flag:
-- Simple tone changes across unrelated posts
-- Normal personal growth or opinion evolution over long time periods
-- Different contexts (serious vs casual subreddits)
+IGNORE:
+- Normal opinion evolution over long periods
+- Different contexts (serious vs casual discussions)
 - Sarcasm vs genuine statements
 - Hypothetical scenarios vs real opinions
-
-Look for:
-- Direct opposing viewpoints on the same topic
-- Ideological inconsistencies within short time frames
-- Contradictory moral or ethical stances
-- Flip-flopping without reasonable explanation
 
 Summaries to analyze:
 ${summariesText}
 
-Output format (be specific and reference IDs):
+OUTPUT FORMAT:
 Contradiction between ID-X and ID-Y: [Specific description of the contradiction and why it's significant]
 
-If no genuine contradictions are found, respond with:
-No contradictions detected.
+If no genuine contradictions found, respond with: "No contradictions detected."
 
-If insufficient information for analysis, respond with:
-No contradiction detectable with given summaries.
-
-Analyze now with high standards for what constitutes a real contradiction:`;
+Analyze with high standards for what constitutes a real contradiction:`;
   }
 
   private async makeOpenRouterRequest(model: string, prompt: string): Promise<string> {
@@ -347,13 +387,16 @@ Analyze now with high standards for what constitutes a real contradiction:`;
       throw new Error('API key not available');
     }
 
+    const inputTokens = tokenBudget.estimateTokens(prompt);
+    const maxOutputTokens = 1500;
+
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': window.location.origin,
-        'X-Title': 'Thought Police - Multi-Model Pipeline'
+        'X-Title': 'Thought Police - Optimized Pipeline'
       },
       body: JSON.stringify({
         model,
@@ -364,7 +407,7 @@ Analyze now with high standards for what constitutes a real contradiction:`;
           }
         ],
         temperature: 0.1,
-        max_tokens: 3000,
+        max_tokens: maxOutputTokens,
         top_p: 0.9
       })
     });
@@ -375,7 +418,13 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || '';
+    const responseText = data.choices[0]?.message?.content || '';
+    
+    // Record token usage
+    const outputTokens = tokenBudget.estimateTokens(responseText);
+    tokenBudget.recordUsage(model, inputTokens, outputTokens);
+    
+    return responseText;
   }
 
   private parseSummarizationResponse(response: string, batch: CommentWithId[]): SummaryResult[] {
@@ -398,13 +447,13 @@ Analyze now with high standards for what constitutes a real contradiction:`;
       }
     }
     
-    // If parsing failed or incomplete, create fallback summaries for missing items
+    // Add fallback summaries for missing items
     const missingComments = batch.filter(comment => 
       !summaries.some(summary => summary.id === comment.id)
     );
     
     if (missingComments.length > 0) {
-      console.warn(`${missingComments.length} summaries missing from AI response, adding fallbacks`);
+      this.debug(`${missingComments.length} summaries missing from AI response, adding fallbacks`);
       const fallbackSummaries = this.createFallbackSummaries(missingComments);
       summaries.push(...fallbackSummaries);
     }
@@ -421,12 +470,10 @@ Analyze now with high standards for what constitutes a real contradiction:`;
       if (match) {
         const [, id1, id2, description] = match;
         
-        // Verify both IDs exist in summaries
         const summary1 = summaries.find(s => s.id === id1);
         const summary2 = summaries.find(s => s.id === id2);
         
         if (summary1 && summary2) {
-          // Calculate confidence based on time difference and content analysis
           const confidence = this.calculateContradictionConfidence(summary1, summary2, description);
           
           contradictions.push({
@@ -440,10 +487,9 @@ Analyze now with high standards for what constitutes a real contradiction:`;
       }
     }
     
-    // Sort by confidence and limit to most significant contradictions
     return contradictions
       .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 15);
+      .slice(0, 12); // Limit to most significant
   }
 
   private calculateContradictionConfidence(
@@ -451,27 +497,37 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     summary2: SummaryResult, 
     description: string
   ): number {
-    let confidence = 85; // Base confidence for AI-detected contradictions
+    let confidence = 80; // Base confidence for AI-detected contradictions
     
-    // Reduce confidence if comments are very close in time (might be context-dependent)
+    // Time-based adjustments
     const timeDiff = Math.abs(summary2.originalComment.date - summary1.originalComment.date);
     const daysDiff = timeDiff / (24 * 60 * 60);
     
     if (daysDiff < 1) {
-      confidence -= 20; // Same day posts might be contextual
+      confidence -= 25; // Same day might be contextual
     } else if (daysDiff < 7) {
-      confidence -= 10; // Same week posts might be related
+      confidence -= 15; // Same week might be related
+    } else if (daysDiff > 365) {
+      confidence -= 10; // Very old might be opinion evolution
     }
     
-    // Increase confidence for strong opposing language
+    // Content-based adjustments
     const strongOpposition = ['completely opposite', 'directly contradicts', 'total reversal', 'flip-flop'];
     if (strongOpposition.some(phrase => description.toLowerCase().includes(phrase))) {
-      confidence += 10;
+      confidence += 15;
     }
     
-    // Reduce confidence for different subreddit contexts
+    // Context adjustments
     if (summary1.originalComment.subreddit !== summary2.originalComment.subreddit) {
-      confidence -= 5;
+      const contextualSubs = ['circlejerk', 'satire', 'jokes', 'memes'];
+      if (contextualSubs.some(sub => 
+        summary1.originalComment.subreddit.toLowerCase().includes(sub) ||
+        summary2.originalComment.subreddit.toLowerCase().includes(sub)
+      )) {
+        confidence -= 20; // Likely satirical context
+      } else {
+        confidence -= 5; // Different contexts
+      }
     }
     
     return Math.max(50, Math.min(95, confidence));
@@ -487,17 +543,17 @@ Analyze now with high standards for what constitutes a real contradiction:`;
 
   private createEnhancedSummary(comment: CommentWithId): string {
     const text = comment.text;
-    const truncated = text.length > 150 ? text.substring(0, 150) + '...' : text;
+    const truncated = text.length > 200 ? text.substring(0, 200) + '...' : text;
     const sentiment = this.detectAdvancedSentiment(text);
-    const tone = this.detectTone(text);
+    const stance = this.detectStance(text);
     const intensity = this.detectIntensity(text);
     
-    return `${truncated} (${sentiment} sentiment, ${tone} tone, ${intensity} intensity)`;
+    return `${truncated} (${sentiment} sentiment, ${stance} stance, ${intensity} intensity)`;
   }
 
   private detectAdvancedSentiment(text: string): string {
-    const positive = ['good', 'great', 'love', 'like', 'amazing', 'awesome', 'excellent', 'fantastic', 'wonderful'];
-    const negative = ['bad', 'hate', 'terrible', 'awful', 'horrible', 'worst', 'sucks', 'disgusting', 'pathetic'];
+    const positive = ['good', 'great', 'love', 'like', 'amazing', 'awesome', 'excellent', 'fantastic', 'wonderful', 'support'];
+    const negative = ['bad', 'hate', 'terrible', 'awful', 'horrible', 'worst', 'sucks', 'disgusting', 'pathetic', 'oppose'];
     
     const lower = text.toLowerCase();
     const posCount = positive.filter(word => lower.includes(word)).length;
@@ -508,16 +564,14 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     return 'neutral';
   }
 
-  private detectTone(text: string): string {
+  private detectStance(text: string): string {
     const lower = text.toLowerCase();
     
-    if (lower.includes('lol') || lower.includes('haha') || lower.includes('😂')) return 'humorous';
-    if (lower.includes('wtf') || lower.includes('damn') || lower.includes('shit')) return 'aggressive';
+    if (lower.includes('strongly') || lower.includes('absolutely') || lower.includes('definitely')) return 'strong';
     if (lower.includes('maybe') || lower.includes('perhaps') || lower.includes('might')) return 'tentative';
-    if (lower.includes('definitely') || lower.includes('absolutely') || lower.includes('never')) return 'assertive';
-    if (lower.includes('?') && text.split('?').length > 2) return 'questioning';
+    if (lower.includes('always') || lower.includes('never') || lower.includes('completely')) return 'absolute';
     
-    return 'neutral';
+    return 'moderate';
   }
 
   private detectIntensity(text: string): string {
@@ -525,7 +579,7 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     const lower = text.toLowerCase();
     const intensifierCount = intensifiers.filter(word => lower.includes(word)).length;
     
-    if (intensifierCount > 2 || text.includes('!!!') || text.includes('ALL CAPS')) return 'high';
+    if (intensifierCount > 2 || text.includes('!!!') || /[A-Z]{3,}/.test(text)) return 'high';
     if (intensifierCount > 0 || text.includes('!!')) return 'medium';
     return 'low';
   }
@@ -533,13 +587,13 @@ Analyze now with high standards for what constitutes a real contradiction:`;
   private createFallbackContradictions(summaries: SummaryResult[]): ContradictionResult[] {
     const contradictions: ContradictionResult[] = [];
     
-    // Enhanced keyword-based contradiction detection
+    // Enhanced semantic contradiction detection
     for (let i = 0; i < summaries.length; i++) {
       for (let j = i + 1; j < summaries.length; j++) {
         const summary1 = summaries[i];
         const summary2 = summaries[j];
         
-        // Skip if same subreddit and close in time (likely related context)
+        // Skip if same context and close in time
         const timeDiff = Math.abs(summary2.originalComment.date - summary1.originalComment.date);
         const daysDiff = timeDiff / (24 * 60 * 60);
         
@@ -547,12 +601,12 @@ Analyze now with high standards for what constitutes a real contradiction:`;
           continue;
         }
         
-        const contradictionType = this.detectContradictionType(summary1.summary, summary2.summary);
+        const contradictionType = this.detectSemanticContradiction(summary1.summary, summary2.summary);
         if (contradictionType) {
           contradictions.push({
             id1: summary1.id,
             id2: summary2.id,
-            description: `${contradictionType.description} (fallback analysis)`,
+            description: `${contradictionType.description} (enhanced fallback analysis)`,
             confidence: contradictionType.confidence,
             category: contradictionType.category
           });
@@ -562,10 +616,10 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     
     return contradictions
       .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 8); // Limit fallback contradictions
+      .slice(0, 6);
   }
 
-  private detectContradictionType(text1: string, text2: string): {
+  private detectSemanticContradiction(text1: string, text2: string): {
     description: string;
     confidence: number;
     category: string;
@@ -573,40 +627,39 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     const lower1 = text1.toLowerCase();
     const lower2 = text2.toLowerCase();
     
-    // Strong opposites
-    const strongOpposites = [
-      { pos: 'absolutely love', neg: 'absolutely hate', conf: 90 },
-      { pos: 'completely support', neg: 'completely oppose', conf: 88 },
-      { pos: 'strongly agree', neg: 'strongly disagree', conf: 85 },
-      { pos: 'definitely yes', neg: 'definitely no', conf: 83 }
-    ];
-    
-    for (const opposite of strongOpposites) {
-      if ((lower1.includes(opposite.pos) && lower2.includes(opposite.neg)) ||
-          (lower1.includes(opposite.neg) && lower2.includes(opposite.pos))) {
-        return {
-          description: `Strong opposing positions detected: "${opposite.pos}" vs "${opposite.neg}"`,
-          confidence: opposite.conf,
-          category: 'opinion'
-        };
+    // Enhanced opposition patterns
+    const oppositionPatterns = [
+      { 
+        pos: ['strongly support', 'absolutely love', 'completely agree'], 
+        neg: ['strongly oppose', 'absolutely hate', 'completely disagree'], 
+        conf: 85,
+        desc: 'Strong opposing positions'
+      },
+      { 
+        pos: ['support', 'favor', 'endorse'], 
+        neg: ['oppose', 'against', 'reject'], 
+        conf: 75,
+        desc: 'Opposing viewpoints'
+      },
+      { 
+        pos: ['love', 'enjoy', 'like'], 
+        neg: ['hate', 'despise', 'dislike'], 
+        conf: 70,
+        desc: 'Contradictory preferences'
       }
-    }
-    
-    // Basic opposites
-    const basicOpposites = [
-      { pos: 'love', neg: 'hate', conf: 70 },
-      { pos: 'support', neg: 'oppose', conf: 68 },
-      { pos: 'agree', neg: 'disagree', conf: 65 },
-      { pos: 'good', neg: 'bad', conf: 60 }
     ];
     
-    for (const opposite of basicOpposites) {
-      if ((lower1.includes(opposite.pos) && lower2.includes(opposite.neg)) ||
-          (lower1.includes(opposite.neg) && lower2.includes(opposite.pos))) {
+    for (const pattern of oppositionPatterns) {
+      const hasPos1 = pattern.pos.some(p => lower1.includes(p));
+      const hasNeg1 = pattern.neg.some(n => lower1.includes(n));
+      const hasPos2 = pattern.pos.some(p => lower2.includes(p));
+      const hasNeg2 = pattern.neg.some(n => lower2.includes(n));
+      
+      if ((hasPos1 && hasNeg2) || (hasNeg1 && hasPos2)) {
         return {
-          description: `Opposing viewpoints detected: "${opposite.pos}" vs "${opposite.neg}"`,
-          confidence: opposite.conf,
-          category: 'personal-preference'
+          description: `${pattern.desc}: conflicting stances detected`,
+          confidence: pattern.conf,
+          category: this.detectCategory(text1 + ' ' + text2)
         };
       }
     }
@@ -617,13 +670,13 @@ Analyze now with high standards for what constitutes a real contradiction:`;
   private detectCategory(description: string): string {
     const lower = description.toLowerCase();
     
-    if (lower.includes('politic') || lower.includes('government') || lower.includes('election')) return 'political';
-    if (lower.includes('food') || lower.includes('preference') || lower.includes('taste')) return 'personal-preference';
-    if (lower.includes('fact') || lower.includes('truth') || lower.includes('evidence')) return 'factual';
-    if (lower.includes('relationship') || lower.includes('dating') || lower.includes('marriage')) return 'relationship';
-    if (lower.includes('technology') || lower.includes('tech') || lower.includes('software')) return 'technology';
-    if (lower.includes('entertainment') || lower.includes('movie') || lower.includes('game')) return 'entertainment';
-    if (lower.includes('lifestyle') || lower.includes('health') || lower.includes('fitness')) return 'lifestyle';
+    if (lower.includes('politic') || lower.includes('government') || lower.includes('election') || lower.includes('vote')) return 'political';
+    if (lower.includes('food') || lower.includes('preference') || lower.includes('taste') || lower.includes('like') || lower.includes('love')) return 'personal-preference';
+    if (lower.includes('fact') || lower.includes('truth') || lower.includes('evidence') || lower.includes('science')) return 'factual';
+    if (lower.includes('relationship') || lower.includes('dating') || lower.includes('marriage') || lower.includes('family')) return 'relationship';
+    if (lower.includes('technology') || lower.includes('tech') || lower.includes('software') || lower.includes('computer')) return 'technology';
+    if (lower.includes('entertainment') || lower.includes('movie') || lower.includes('game') || lower.includes('music')) return 'entertainment';
+    if (lower.includes('lifestyle') || lower.includes('health') || lower.includes('fitness') || lower.includes('diet')) return 'lifestyle';
     
     return 'opinion';
   }
@@ -634,15 +687,15 @@ Analyze now with high standards for what constitutes a real contradiction:`;
     contradictions: ContradictionResult[], 
     username: string
   ): AnalysisReport {
-    // Convert contradictions to the expected format
+    // Convert contradictions to expected format
     const formattedContradictions = contradictions.map(c => {
       const comment1 = summaries.find(s => s.id === c.id1)?.originalComment;
       const comment2 = summaries.find(s => s.id === c.id2)?.originalComment;
       
       return {
         id: `${c.id1}-${c.id2}`,
-        statement1: comment1?.text.substring(0, 300) || 'Statement not found',
-        statement2: comment2?.text.substring(0, 300) || 'Statement not found',
+        statement1: comment1?.text.substring(0, 400) || 'Statement not found',
+        statement2: comment2?.text.substring(0, 400) || 'Statement not found',
         dates: [
           new Date((comment1?.date || 0) * 1000).toISOString(),
           new Date((comment2?.date || 0) * 1000).toISOString()
@@ -657,7 +710,7 @@ Analyze now with high standards for what constitutes a real contradiction:`;
         downvotes: Math.floor(Math.random() * 10),
         verified: c.confidence > 80,
         category: c.category as any,
-        requiresHumanReview: c.confidence < 75
+        requiresHumanReview: c.confidence < 70
       };
     });
 
@@ -717,24 +770,31 @@ Analyze now with high standards for what constitutes a real contradiction:`;
   }
 
   private generateSummary(contradictions: any[], stats: any, totalComments: number, username: string): string {
+    const budgetStatus = tokenBudget.getBudgetStatus();
+    const analysisMethod = this.isAvailable && !budgetStatus.isExceeded ? 'AI-powered' : 'Enhanced fallback';
+    
     if (contradictions.length === 0) {
-      return `Multi-model pipeline analysis complete for ${username}. No significant contradictions detected across ${totalComments} statements spanning ${stats.timespan}. User appears to maintain consistent positions across topics and time periods. Analysis used 5 diverse AI models for comprehensive coverage.`;
+      return `${analysisMethod} analysis complete for ${username}. No significant contradictions detected across ${totalComments} statements spanning ${stats.timespan}. User maintains consistent positions across topics and time periods.`;
     }
 
     const highConfidenceCount = contradictions.filter(c => c.confidenceScore > 80).length;
     const humanReviewCount = contradictions.filter(c => c.requiresHumanReview).length;
     
-    let summary = `Multi-model pipeline analysis reveals ${contradictions.length} potential contradictions across ${totalComments} statements spanning ${stats.timespan}. `;
+    let summary = `${analysisMethod} analysis reveals ${contradictions.length} potential contradictions across ${totalComments} statements spanning ${stats.timespan}. `;
     
     if (highConfidenceCount > 0) {
-      summary += `${highConfidenceCount} contradictions show high confidence scores (>80%). `;
+      summary += `${highConfidenceCount} contradictions show high confidence (>80%). `;
     }
     
     if (humanReviewCount > 0) {
-      summary += `${humanReviewCount} findings flagged for human review due to context complexity. `;
+      summary += `${humanReviewCount} findings require human review due to context complexity. `;
     }
     
-    summary += `Analysis used 5 diverse summarizer models (Mistral, Gemini, DeepSeek, Qwen) + 1 contradiction model for maximum accuracy and bias reduction.`;
+    if (this.isAvailable) {
+      summary += `Analysis used optimized 2-stage pipeline with budget-aware model selection.`;
+    } else {
+      summary += `Analysis used enhanced semantic detection with local processing.`;
+    }
 
     return summary;
   }
@@ -765,6 +825,13 @@ Analyze now with high standards for what constitutes a real contradiction:`;
         sentimentTrend: 0
       }
     };
+  }
+
+  private createFallbackReport(comments: CommentWithId[], username: string): AnalysisReport {
+    const summaries = this.createFallbackSummaries(comments);
+    const contradictions = this.createFallbackContradictions(summaries);
+    
+    return this.generateReport(comments, summaries, contradictions, username);
   }
 }
 
