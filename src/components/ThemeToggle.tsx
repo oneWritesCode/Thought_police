@@ -11,7 +11,7 @@ const ThemeToggle: React.FC = () => {
       onClick={toggleTheme}
       className={`relative p-2 rounded-lg transition-colors duration-200 ${
         isDark 
-          ? 'bg-slate-700 text-yellow-400 hover:bg-slate-600' 
+          ? 'bg-slate-700 text-white hover:bg-slate-600' 
           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
       }`}
       whileHover={{ scale: 1.05 }}
@@ -27,16 +27,16 @@ const ThemeToggle: React.FC = () => {
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         {isDark ? (
-          <Moon className="h-5 w-5" />
+          <Moon className="h-5 w-5 text-white" />
         ) : (
-          <Sun className="h-5 w-5" />
+          <Sun className="h-5 w-5 text-amber-500" />
         )}
       </motion.div>
       
       {/* Subtle glow effect */}
       <motion.div
         className={`absolute inset-0 rounded-lg ${
-          isDark ? 'bg-yellow-400/20' : 'bg-orange-400/20'
+          isDark ? 'bg-blue-400/20' : 'bg-orange-400/20'
         }`}
         initial={{ opacity: 0 }}
         animate={{ opacity: isDark ? 0.3 : 0 }}

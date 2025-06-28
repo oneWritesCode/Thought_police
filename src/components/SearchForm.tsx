@@ -85,66 +85,66 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-2xl mx-auto"
     >
-      <div className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700 transition-colors duration-200">
         <div className="flex items-center justify-center mb-6">
-          <div className="bg-blue-100 p-3 rounded-full">
-            <Search className="h-8 w-8 text-blue-600" />
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full transition-colors duration-200">
+            <Search className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
         </div>
         
-        <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">
+        <h2 className="text-2xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2 transition-colors duration-200">
           Analyze Reddit User
         </h2>
-        <p className="text-slate-600 text-center mb-8">
+        <p className="text-slate-600 dark:text-slate-300 text-center mb-8 transition-colors duration-200">
           Enter a Reddit username to analyze their complete comment history for contradictions
         </p>
 
         {/* Budget Status */}
         {budgetStatus && (
-          <div className={`mb-6 p-4 rounded-lg border ${
-            budgetStatus.isExceeded ? 'bg-red-50 border-red-200' :
-            budgetStatus.isWarning ? 'bg-amber-50 border-amber-200' :
-            'bg-green-50 border-green-200'
+          <div className={`mb-6 p-4 rounded-lg border transition-colors duration-200 ${
+            budgetStatus.isExceeded ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+            budgetStatus.isWarning ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' :
+            'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <DollarSign className={`h-4 w-4 ${
-                  budgetStatus.isExceeded ? 'text-red-600' :
-                  budgetStatus.isWarning ? 'text-amber-600' :
-                  'text-green-600'
+                  budgetStatus.isExceeded ? 'text-red-600 dark:text-red-400' :
+                  budgetStatus.isWarning ? 'text-amber-600 dark:text-amber-400' :
+                  'text-green-600 dark:text-green-400'
                 }`} />
-                <span className={`text-sm font-medium ${
-                  budgetStatus.isExceeded ? 'text-red-800' :
-                  budgetStatus.isWarning ? 'text-amber-800' :
-                  'text-green-800'
+                <span className={`text-sm font-medium transition-colors duration-200 ${
+                  budgetStatus.isExceeded ? 'text-red-800 dark:text-red-200' :
+                  budgetStatus.isWarning ? 'text-amber-800 dark:text-amber-200' :
+                  'text-green-800 dark:text-green-200'
                 }`}>
                   AI Budget: ${budgetStatus.spent.toFixed(2)} / ${budgetStatus.remaining.toFixed(2)} remaining
                 </span>
               </div>
-              <div className={`text-xs px-2 py-1 rounded ${
-                budgetStatus.isExceeded ? 'bg-red-100 text-red-700' :
-                budgetStatus.isWarning ? 'bg-amber-100 text-amber-700' :
-                'bg-green-100 text-green-700'
+              <div className={`text-xs px-2 py-1 rounded transition-colors duration-200 ${
+                budgetStatus.isExceeded ? 'bg-red-100 dark:bg-red-800/30 text-red-700 dark:text-red-300' :
+                budgetStatus.isWarning ? 'bg-amber-100 dark:bg-amber-800/30 text-amber-700 dark:text-amber-300' :
+                'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-300'
               }`}>
                 {budgetStatus.percentage.toFixed(1)}% used
               </div>
             </div>
             {budgetStatus.isExceeded && (
-              <p className="text-xs text-red-600 mt-2">
+              <p className="text-xs text-red-600 dark:text-red-400 mt-2 transition-colors duration-200">
                 Budget exceeded. Analysis will use enhanced fallback methods.
               </p>
             )}
           </div>
         )}
 
-        <div className="flex mb-6 bg-slate-100 rounded-lg p-1">
+        <div className="flex mb-6 bg-slate-100 dark:bg-slate-700 rounded-lg p-1 transition-colors duration-200">
           <button
             type="button"
             onClick={() => setSearchType('username')}
             className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               searchType === 'username'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-slate-600 hover:text-slate-800'
+                ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
             }`}
           >
             <User className="h-4 w-4" />
@@ -155,8 +155,8 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
             onClick={() => setSearchType('url')}
             className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               searchType === 'url'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-slate-600 hover:text-slate-800'
+                ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
             }`}
           >
             <ExternalLink className="h-4 w-4" />
@@ -166,7 +166,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors duration-200">
               {searchType === 'username' ? 'Reddit Username' : 'Reddit Profile URL'}
             </label>
             <div className="relative">
@@ -180,9 +180,9 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
                     ? 'Enter username (e.g., spez)' 
                     : 'Enter profile URL (e.g., reddit.com/user/spez)'
                 }
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                  validationError ? 'border-red-300' : 
-                  userPreview?.exists ? 'border-green-300' : 'border-slate-300'
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 ${
+                  validationError ? 'border-red-300 dark:border-red-600' : 
+                  userPreview?.exists ? 'border-green-300 dark:border-green-600' : 'border-slate-300 dark:border-slate-600'
                 }`}
                 disabled={isLoading}
               />
@@ -201,25 +201,25 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mt-3 p-4 bg-slate-50 rounded-lg border"
+                className="mt-3 p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition-colors duration-200"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-slate-800">u/{username.replace(/^(https?:\/\/)?(www\.)?reddit\.com\/(u|user)\//, '')}</div>
-                    <div className="text-xs text-slate-600">
+                    <div className="text-sm font-medium text-slate-800 dark:text-slate-100 transition-colors duration-200">u/{username.replace(/^(https?:\/\/)?(www\.)?reddit\.com\/(u|user)\//, '')}</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-400 transition-colors duration-200">
                       {userPreview.karma.toLocaleString()} karma • Account age: {userPreview.accountAge}
                     </div>
                     {userPreview.estimatedComments > 0 && (
-                      <div className="text-xs text-blue-600 mt-1 flex items-center space-x-1">
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center space-x-1 transition-colors duration-200">
                         <Zap className="h-3 w-3" />
                         <span>~{userPreview.estimatedComments} comments estimated for comprehensive analysis</span>
                       </div>
                     )}
                   </div>
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium transition-colors duration-200 ${
                     userPreview.recentActivity 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+                      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                   }`}>
                     {userPreview.recentActivity ? 'Ready for Analysis' : 'Limited Activity'}
                   </div>
@@ -232,7 +232,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-2 text-sm text-red-600"
+                className="mt-2 text-sm text-red-600 dark:text-red-400 transition-colors duration-200"
               >
                 {validationError}
               </motion.p>
@@ -260,18 +260,18 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
           </motion.button>
         </form>
 
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors duration-200">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <Zap className="h-5 w-5 text-blue-600" />
+              <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-blue-800">Unlimited History Analysis</h3>
-              <p className="mt-1 text-sm text-blue-700">
+              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 transition-colors duration-200">Unlimited History Analysis</h3>
+              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300 transition-colors duration-200">
                 Our enhanced system now fetches ALL available comments and posts using Reddit's pagination API + Pushshift for historical data. 
                 This ensures comprehensive analysis of the user's complete history (up to 5,000+ comments), not just recent activity.
               </p>
-              <div className="mt-2 text-xs text-blue-600">
+              <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 transition-colors duration-200">
                 <strong>Features:</strong> Streaming pagination • Smart deduplication • Budget-aware AI models • Enhanced fallback analysis
               </div>
             </div>
@@ -280,7 +280,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
 
         {/* Analysis details */}
         <div className="mt-4 text-center">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200">
             Optimized 2-stage pipeline • Token budget management • Persistent caching • 30-90 seconds processing time
           </p>
         </div>
