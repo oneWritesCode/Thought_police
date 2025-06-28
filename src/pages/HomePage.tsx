@@ -133,11 +133,11 @@ const HomePage: React.FC = () => {
         <SearchForm onSearch={handleSearch} isLoading={isLoading} />
       </section>
 
-      {/* Live Stats */}
-      <section className="bg-gradient-to-r from-primary-800 to-primary-900 rounded-2xl p-8 text-white transition-colors duration-200">
+      {/* Platform Capabilities - Fixed for Light Mode */}
+      <section className="bg-white dark:bg-gradient-to-r dark:from-primary-800 dark:to-primary-900 border border-primary-200 dark:border-transparent rounded-2xl p-8 shadow-lg transition-colors duration-200">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4">Platform Capabilities</h2>
-          <p className="text-primary-300">Powered by real Reddit API integration</p>
+          <h2 className="text-3xl font-bold text-primary-900 dark:text-white mb-4 transition-colors duration-200">Platform Capabilities</h2>
+          <p className="text-primary-600 dark:text-primary-300 transition-colors duration-200">Powered by real Reddit API integration</p>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -145,40 +145,40 @@ const HomePage: React.FC = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-center"
+            className="text-center p-4 bg-primary-50 dark:bg-transparent rounded-lg transition-colors duration-200"
           >
             <div className="text-3xl font-bold text-reddit-blue mb-2">200+</div>
-            <div className="text-primary-300 text-sm">Comments Analyzed</div>
+            <div className="text-primary-600 dark:text-primary-300 text-sm transition-colors duration-200">Comments Analyzed</div>
           </motion.div>
           
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-center"
+            className="text-center p-4 bg-primary-50 dark:bg-transparent rounded-lg transition-colors duration-200"
           >
-            <div className="text-3xl font-bold text-green-400 mb-2">Real-time</div>
-            <div className="text-primary-300 text-sm">Live Reddit Data</div>
+            <div className="text-3xl font-bold text-green-600 mb-2">Real-time</div>
+            <div className="text-primary-600 dark:text-primary-300 text-sm transition-colors duration-200">Live Reddit Data</div>
           </motion.div>
           
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-center"
+            className="text-center p-4 bg-primary-50 dark:bg-transparent rounded-lg transition-colors duration-200"
           >
             <div className="text-3xl font-bold text-reddit-orange mb-2">AI-Powered</div>
-            <div className="text-primary-300 text-sm">Smart Analysis</div>
+            <div className="text-primary-600 dark:text-primary-300 text-sm transition-colors duration-200">Smart Analysis</div>
           </motion.div>
           
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            className="text-center"
+            className="text-center p-4 bg-primary-50 dark:bg-transparent rounded-lg transition-colors duration-200"
           >
-            <div className="text-3xl font-bold text-yellow-400 mb-2">95%+</div>
-            <div className="text-primary-300 text-sm">Accuracy Rate</div>
+            <div className="text-3xl font-bold text-yellow-600 mb-2">95%+</div>
+            <div className="text-primary-600 dark:text-primary-300 text-sm transition-colors duration-200">Accuracy Rate</div>
           </motion.div>
         </div>
       </section>
