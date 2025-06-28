@@ -79,6 +79,27 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
 
   const isValidForAnalysis = userPreview?.exists && userPreview?.recentActivity && !validationError;
 
+  // Get the appropriate validation icon
+  const getValidationIcon = () => {
+    if (isValidating) {
+      return <Loader className="h-5 w-5 animate-spin text-reddit-blue" />;
+    }
+    
+    if (validationError) {
+      return <XCircle className="h-5 w-5 text-red-500" />;
+    }
+    
+    if (userPreview?.exists && userPreview?.recentActivity) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    }
+    
+    if (userPreview?.exists && !userPreview?.recentActivity) {
+      return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+    }
+    
+    return null;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -180,20 +201,19 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
                     ? 'Enter username (e.g., spez)' 
                     : 'Enter profile URL (e.g., reddit.com/user/spez)'
                 }
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-reddit-blue focus:border-transparent transition-colors bg-white dark:bg-primary-700 text-primary-900 dark:text-white placeholder-primary-400 dark:placeholder-primary-400 ${
+                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-reddit-blue focus:border-transparent transition-colors bg-white dark:bg-primary-700 text-primary-900 dark:text-white placeholder-primary-400 dark:placeholder-primary-400 ${
                   validationError ? 'border-red-300 dark:border-red-600' : 
                   userPreview?.exists ? 'border-green-300 dark:border-green-600' : 'border-primary-300 dark:border-primary-600'
                 }`}
                 disabled={isLoading}
               />
               
-              {/* Validation indicator */}
-              <div className="absolute right-3 top-3">
-                {isValidating && <Loader className="h-5 w-5 animate-spin text-reddit-blue" />}
-                {!isValidating && validationError && <XCircle className="h-5 w-5 text-red-500" />}
-                {!isValidating && userPreview?.exists && userPreview?.recentActivity && <CheckCircle className="h-5 w-5 text-green-500" />}
-                {!isValidating && userPreview?.exists && !userPreview?.recentActivity && <AlertCircle className="h-5 w-5 text-yellow-500" />}
-              </div>
+              {/* Single validation indicator - positioned properly */}
+              {(username.trim().length > 2) && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  {getValidationIcon()}
+                </div>
+              )}
             </div>
 
             {/* User preview */}
@@ -204,24 +224,26 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
                 className="mt-3 p-4 bg-primary-50 dark:bg-primary-700 rounded-lg border border-primary-200 dark:border-primary-600 transition-colors duration-200"
               >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium text-primary-900 dark:text-white transition-colors duration-200">u/{username.replace(/^(https?:\/\/)?(www\.)?reddit\.com\/(u|user)\//, '')}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-primary-900 dark:text-white transition-colors duration-200 truncate">
+                      u/{username.replace(/^(https?:\/\/)?(www\.)?reddit\.com\/(u|user)\//, '')}
+                    </div>
                     <div className="text-xs text-primary-600 dark:text-primary-400 transition-colors duration-200">
                       {userPreview.karma.toLocaleString()} karma • Account age: {userPreview.accountAge}
                     </div>
                     {userPreview.estimatedComments > 0 && (
                       <div className="text-xs text-reddit-blue mt-1 flex items-center space-x-1 transition-colors duration-200">
-                        <Zap className="h-3 w-3" />
-                        <span>~{userPreview.estimatedComments} comments estimated for comprehensive analysis</span>
+                        <Zap className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">~{userPreview.estimatedComments} comments estimated for comprehensive analysis</span>
                       </div>
                     )}
                   </div>
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium transition-colors duration-200 ${
+                  <div className={`ml-3 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors duration-200 ${
                     userPreview.recentActivity 
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
                       : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                   }`}>
-                    {userPreview.recentActivity ? 'Ready for Analysis' : 'Limited Activity'}
+                    {userPreview.recentActivity ? 'Ready' : 'Limited'}
                   </div>
                 </div>
               </motion.div>
@@ -265,7 +287,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
             <div className="flex-shrink-0">
               <Zap className="h-5 w-5 text-reddit-blue" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h3 className="text-sm font-medium text-reddit-blue-dark dark:text-reddit-blue-light transition-colors duration-200">Unlimited History Analysis</h3>
               <p className="mt-1 text-sm text-primary-700 dark:text-primary-300 transition-colors duration-200">
                 Our enhanced system now fetches ALL available comments and posts using Reddit's pagination API + Pushshift for historical data. 
