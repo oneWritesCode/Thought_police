@@ -117,7 +117,7 @@ const ProfilePage: React.FC = () => {
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-md text-sm font-medium transition-colors ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blu600 text-white'
                     : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
