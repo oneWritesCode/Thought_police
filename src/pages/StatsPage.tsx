@@ -74,18 +74,18 @@ const StatsPage: React.FC = () => {
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4 transition-colors duration-200"
+          className="text-4xl font-bold text-primary-900 dark:text-white mb-4 transition-colors duration-200"
         >
           Platform Statistics
         </motion.h1>
-        <p className="text-slate-600 dark:text-slate-300 text-lg transition-colors duration-200">
+        <p className="text-primary-600 dark:text-primary-300 text-lg transition-colors duration-200">
           Comprehensive analytics and insights from the Thought Police community
         </p>
       </div>
 
       {/* Period Selector */}
       <div className="flex justify-center">
-        <div className="bg-white dark:bg-slate-800 rounded-lg p-1 shadow-lg border border-slate-200 dark:border-slate-700 transition-colors duration-200">
+        <div className="bg-white dark:bg-primary-800 rounded-lg p-1 shadow-lg border border-primary-200 dark:border-primary-700 transition-colors duration-200">
           {[
             { key: '7d', label: '7 Days' },
             { key: '30d', label: '30 Days' },
@@ -97,8 +97,8 @@ const StatsPage: React.FC = () => {
               onClick={() => setSelectedPeriod(period.key as any)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 selectedPeriod === period.key
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100'
+                  ? 'bg-reddit-blue text-white'
+                  : 'text-primary-600 dark:text-primary-300 hover:text-primary-900 dark:hover:text-white'
               }`}
             >
               {period.label}
@@ -113,7 +113,7 @@ const StatsPage: React.FC = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white"
+          className="bg-gradient-to-br from-reddit-blue to-reddit-blue-dark rounded-xl p-6 text-white"
         >
           <div className="flex items-center justify-between mb-4">
             <Users className="h-8 w-8 opacity-80" />
@@ -155,7 +155,7 @@ const StatsPage: React.FC = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
-          className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white"
+          className="bg-gradient-to-br from-reddit-orange to-reddit-orange-dark rounded-xl p-6 text-white"
         >
           <div className="flex items-center justify-between mb-4">
             <MessageSquare className="h-8 w-8 opacity-80" />
@@ -173,10 +173,10 @@ const StatsPage: React.FC = () => {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 transition-colors duration-200"
+          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-200">Contradiction Trends</h3>
+            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Contradiction Trends</h3>
             <TrendingUp className="h-5 w-5 text-green-600" />
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -194,8 +194,8 @@ const StatsPage: React.FC = () => {
               <Area 
                 type="monotone" 
                 dataKey="contradictions" 
-                stroke="#3b82f6" 
-                fill="#3b82f6" 
+                stroke="#0079D3" 
+                fill="#0079D3" 
                 fillOpacity={0.1}
               />
             </AreaChart>
@@ -207,11 +207,11 @@ const StatsPage: React.FC = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 transition-colors duration-200"
+          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-200">Contradiction Categories</h3>
-            <Eye className="h-5 w-5 text-blue-600" />
+            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Contradiction Categories</h3>
+            <Eye className="h-5 w-5 text-reddit-blue" />
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -238,8 +238,8 @@ const StatsPage: React.FC = () => {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: category.color }}
                 ></div>
-                <span className="text-sm text-slate-600 dark:text-slate-400 transition-colors duration-200">{category.name}</span>
-                <span className="text-sm font-medium text-slate-800 dark:text-slate-100 transition-colors duration-200">{category.value}%</span>
+                <span className="text-sm text-primary-600 dark:text-primary-400 transition-colors duration-200">{category.name}</span>
+                <span className="text-sm font-medium text-primary-900 dark:text-white transition-colors duration-200">{category.value}%</span>
               </div>
             ))}
           </div>
@@ -253,11 +253,11 @@ const StatsPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 transition-colors duration-200"
+          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-200">Top Subreddits</h3>
-            <Award className="h-5 w-5 text-purple-600" />
+            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Top Subreddits</h3>
+            <Award className="h-5 w-5 text-reddit-orange" />
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topSubredditsData} layout="horizontal">
@@ -271,7 +271,7 @@ const StatsPage: React.FC = () => {
                   borderRadius: '8px'
                 }}
               />
-              <Bar dataKey="contradictions" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="contradictions" fill="#FF4500" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
@@ -281,11 +281,11 @@ const StatsPage: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700 transition-colors duration-200"
+          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 transition-colors duration-200">Daily User Activity</h3>
-            <Calendar className="h-5 w-5 text-orange-600" />
+            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Daily User Activity</h3>
+            <Calendar className="h-5 w-5 text-reddit-orange" />
           </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={userActivityData}>
@@ -302,9 +302,9 @@ const StatsPage: React.FC = () => {
               <Line 
                 type="monotone" 
                 dataKey="users" 
-                stroke="#f59e0b" 
+                stroke="#0079D3" 
                 strokeWidth={3}
-                dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }}
+                dot={{ fill: '#0079D3', strokeWidth: 2, r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -316,7 +316,7 @@ const StatsPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
-        className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-700 dark:to-purple-800 rounded-xl p-8 text-white transition-colors duration-200"
+        className="bg-gradient-to-r from-reddit-blue to-reddit-orange rounded-xl p-8 text-white"
       >
         <h3 className="text-2xl font-bold mb-6 text-center">Platform Milestones</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

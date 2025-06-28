@@ -24,8 +24,8 @@ const PoliceCard: React.FC<PoliceCardProps> = ({ user, className = '' }) => {
     >
       <div className="relative w-96 h-64 mx-auto">
         {/* Card Background with Holographic Effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-black rounded-2xl shadow-2xl transform-gpu">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-amber-600/20 rounded-2xl animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-800 via-primary-900 to-black dark:from-primary-800 dark:via-primary-900 dark:to-black rounded-2xl shadow-2xl transform-gpu transition-colors duration-200">
+          <div className="absolute inset-0 bg-gradient-to-br from-reddit-blue/20 via-reddit-orange/20 to-yellow-600/20 rounded-2xl animate-pulse"></div>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_70%)] rounded-2xl"></div>
         </div>
 
@@ -37,12 +37,12 @@ const PoliceCard: React.FC<PoliceCardProps> = ({ user, className = '' }) => {
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <Shield className="h-6 w-6 text-amber-400" />
-              <span className="text-xs font-bold text-amber-400">THOUGHT POLICE</span>
+              <Shield className="h-6 w-6 text-reddit-orange" />
+              <span className="text-xs font-bold text-reddit-orange">THOUGHT POLICE</span>
             </div>
             <div className="text-right">
-              <div className="text-xs text-slate-300">BADGE #</div>
-              <div className="text-sm font-bold text-amber-400">{badgeNumber}</div>
+              <div className="text-xs text-primary-300">BADGE #</div>
+              <div className="text-sm font-bold text-reddit-orange">{badgeNumber}</div>
             </div>
           </div>
 
@@ -52,18 +52,18 @@ const PoliceCard: React.FC<PoliceCardProps> = ({ user, className = '' }) => {
               <img
                 src={user.avatar || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=2'}
                 alt={user.redditUsername}
-                className="w-16 h-16 rounded-full border-2 border-amber-400 shadow-lg"
+                className="w-16 h-16 rounded-full border-2 border-reddit-orange shadow-lg"
               />
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center">
-                <Star className="h-3 w-3 text-slate-900" />
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-reddit-orange rounded-full flex items-center justify-center">
+                <Star className="h-3 w-3 text-white" />
               </div>
             </div>
             <div className="flex-1">
               <div className="text-lg font-bold">Officer {user.redditUsername}</div>
-              <div className="text-sm text-slate-300" style={{ color: rank.color }}>
+              <div className="text-sm text-primary-300" style={{ color: rank.color }}>
                 {rank.name}
               </div>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-primary-400">
                 Accuracy: {user.accuracyRate}% • Cases: {user.casesSolved}
               </div>
             </div>
@@ -72,28 +72,28 @@ const PoliceCard: React.FC<PoliceCardProps> = ({ user, className = '' }) => {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="text-center">
-              <div className="text-lg font-bold text-amber-400">{user.totalPoints}</div>
-              <div className="text-xs text-slate-400">Points</div>
+              <div className="text-lg font-bold text-reddit-orange">{user.totalPoints}</div>
+              <div className="text-xs text-primary-400">Points</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-blue-400">{user.badgeCount}</div>
-              <div className="text-xs text-slate-400">Badges</div>
+              <div className="text-lg font-bold text-reddit-blue">{user.badgeCount}</div>
+              <div className="text-xs text-primary-400">Badges</div>
             </div>
             <div className="text-center">
               <div className="text-lg font-bold text-green-400">{user.casesSolved}</div>
-              <div className="text-xs text-slate-400">Cases</div>
+              <div className="text-xs text-primary-400">Cases</div>
             </div>
           </div>
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-auto">
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-primary-400">
               <div>Issued: {issueDate}</div>
               <div>Expires: {expireDate}</div>
             </div>
             <div className="flex items-center space-x-2">
-              <QrCode className="h-8 w-8 text-slate-400" />
-              <div className="text-xs text-slate-400">
+              <QrCode className="h-8 w-8 text-primary-400" />
+              <div className="text-xs text-primary-400">
                 <div>DEPT. OF</div>
                 <div>DIGITAL TRUTH</div>
               </div>
@@ -102,8 +102,8 @@ const PoliceCard: React.FC<PoliceCardProps> = ({ user, className = '' }) => {
         </div>
 
         {/* Decorative Elements */}
-        <div className="absolute top-4 right-4 w-8 h-8 border-2 border-amber-400/30 rounded-full animate-ping"></div>
-        <div className="absolute bottom-4 left-4 w-6 h-6 border border-blue-400/30 rounded-full animate-pulse"></div>
+        <div className="absolute top-4 right-4 w-8 h-8 border-2 border-reddit-orange/30 rounded-full animate-ping"></div>
+        <div className="absolute bottom-4 left-4 w-6 h-6 border border-reddit-blue/30 rounded-full animate-pulse"></div>
       </div>
     </motion.div>
   );
