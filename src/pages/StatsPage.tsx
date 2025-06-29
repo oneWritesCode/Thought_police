@@ -26,9 +26,15 @@ import {
   Eye,
   MessageSquare
 } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
+import LoginPage from './LoginPage';
 
 const StatsPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+  const { isAuthenticated } = useAuth0();
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
 
   const contradictionTrendData = [
     { date: '2024-01', contradictions: 234, accuracy: 89 },

@@ -1,12 +1,22 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Trophy, Search, User, TrendingUp, Menu } from 'lucide-react';
+import { Shield, Trophy, Search, User, TrendingUp, LogOut, LogIn, Menu } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 import ThemeToggle from './ThemeToggle';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
+  const { isAuthenticated, logout, loginWithRedirect } = useAuth0();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogin = () => {
+    loginWithRedirect({
+      appState: {
+        returnTo: location.pathname
+      }
+    });
+  };
 
   return (
     <nav className="bg-white dark:bg-primary-800 shadow-lg border-b border-primary-200 dark:border-primary-700 transition-colors duration-200">
@@ -33,7 +43,6 @@ const Navigation: React.FC = () => {
                 <Search className="h-4 w-4" />
                 <span>Analyze</span>
               </Link>
-              
               <Link
                 to="/leaderboard"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -45,7 +54,6 @@ const Navigation: React.FC = () => {
                 <Trophy className="h-4 w-4" />
                 <span>Leaderboard</span>
               </Link>
-              
               <Link
                 to="/stats"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -57,7 +65,6 @@ const Navigation: React.FC = () => {
                 <TrendingUp className="h-4 w-4" />
                 <span>Stats</span>
               </Link>
-              
               <Link
                 to="/profile"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
@@ -69,8 +76,24 @@ const Navigation: React.FC = () => {
                 <User className="h-4 w-4" />
                 <span>Profile</span>
               </Link>
+              {isAuthenticated ? (
+                <button
+                  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-primary-600 dark:text-primary-300 hover:text-reddit-blue dark:hover:text-white hover:bg-primary-100 dark:hover:bg-primary-700`}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-primary-600 dark:text-primary-300 hover:text-reddit-blue dark:hover:text-white hover:bg-primary-100 dark:hover:bg-primary-700`}
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Login</span>
+                </button>
+              )}
             </div>
-            
             {/* Theme Toggle */}
             <ThemeToggle />
           </div>
