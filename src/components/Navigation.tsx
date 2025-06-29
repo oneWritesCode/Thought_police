@@ -1,11 +1,21 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Trophy, Search, User, TrendingUp } from 'lucide-react';
+import { Shield, Trophy, Search, User, TrendingUp, LogOut, LogIn } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
+  const { isAuthenticated, logout, loginWithRedirect } = useAuth0();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogin = () => {
+    loginWithRedirect({
+      appState: {
+        returnTo: location.pathname
+      }
+    });
+  };
 
   return (
     <nav className="bg-slate-900 shadow-lg border-b border-slate-700">
@@ -64,6 +74,32 @@ const Navigation: React.FC = () => {
               <User className="h-4 w-4" />
               <span>Profile</span>
             </Link>
+            
+            {isAuthenticated ? (
+            <button
+                onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isActive('/logout') 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+                </button>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive('/login') 
+                    ? 'bg-blue-600 text-white' 
+                    : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Login</span>
+              </button>
+            )}
           </div>
 
           <div className="md:hidden">
