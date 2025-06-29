@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import StatsPage from './pages/StatsPage';
 import ProfilePage from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/login" element={<LoginPage />} />
           </Routes>
         </main>
       </div>

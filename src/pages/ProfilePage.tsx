@@ -15,8 +15,14 @@ import {
 } from 'lucide-react';
 import PoliceCard from '../components/PoliceCard';
 import { mockUsers, mockAchievements } from '../data/mockData';
+import { useAuth0 } from '@auth0/auth0-react';
+import LoginPage from './LoginPage';
 
 const ProfilePage: React.FC = () => {
+  const { isAuthenticated } = useAuth0();
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'settings'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   
