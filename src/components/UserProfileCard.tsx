@@ -25,7 +25,8 @@ import {
   Twitter,
   Facebook,
   Instagram,
-  Copy
+  Copy,
+  Check
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -64,6 +65,9 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
   const [screenHeight, setScreenHeight] = useState(window.innerHeight);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,7 +98,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
   const cardHeight = isCompactMode ? Math.min(screenHeight - 80, 550) : 600;
 
   const captureCard = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current) return null;
 
     setIsCapturing(true);
     try {
@@ -118,6 +122,10 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
       shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
       closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
 
+      const imageDataUrl = canvas.toDataURL('image/png');
+      setCapturedImage(imageDataUrl);
+      setShowImagePreview(true);
+      
       return canvas;
     } catch (error) {
       console.error('Failed to capture card:', error);
@@ -127,79 +135,111 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
     }
   };
 
-  const downloadImage = async () => {
-    const canvas = await captureCard();
-    if (!canvas) return;
+  const downloadImage = async (imageUrl?: string) => {
+    let canvas;
+    if (imageUrl) {
+      // Use existing captured image
+      const link = document.createElement('a');
+      link.download = `thought-police-${user.username}-card.png`;
+      link.href = imageUrl;
+      link.click();
+    } else {
+      // Capture new image
+      canvas = await captureCard();
+      if (!canvas) return;
 
-    const link = document.createElement('a');
-    link.download = `thought-police-${user.username}-card.png`;
-    link.href = canvas.toDataURL();
-    link.click();
+      const link = document.createElement('a');
+      link.download = `thought-police-${user.username}-card.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
   };
 
-  const shareToSocial = async (platform: string) => {
-    const canvas = await captureCard();
-    if (!canvas) return;
+  const shareToSocial = async (platform: string, imageUrl?: string) => {
+    let canvas;
+    if (imageUrl) {
+      // Convert data URL to blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      handleSocialShare(platform, blob);
+    } else {
+      canvas = await captureCard();
+      if (!canvas) return;
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-
-      const text = `Check out my Thought Police officer card! 🚔 Rank #${user.rank} with ${user.points} points! #ThoughtPolice #RedditAnalysis`;
-      
-      if (navigator.share && platform === 'native') {
-        try {
-          const file = new File([blob], `thought-police-${user.username}.png`, { type: 'image/png' });
-          await navigator.share({
-            title: 'My Thought Police Card',
-            text,
-            files: [file]
-          });
-        } catch (error) {
-          console.log('Native sharing failed, falling back to download');
-          downloadImage();
-        }
-      } else {
-        // Fallback to platform-specific URLs
-        const urls = {
-          twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
-          facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
-          instagram: '', // Instagram doesn't support direct URL sharing
-        };
-
-        if (urls[platform as keyof typeof urls]) {
-          window.open(urls[platform as keyof typeof urls], '_blank');
-        }
-        
-        // Also download the image for manual sharing
-        downloadImage();
-      }
-    }, 'image/png');
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        handleSocialShare(platform, blob);
+      }, 'image/png');
+    }
   };
 
-  const copyToClipboard = async () => {
-    const canvas = await captureCard();
-    if (!canvas) return;
-
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-
+  const handleSocialShare = async (platform: string, blob: Blob) => {
+    const text = `Check out my Thought Police officer card! 🚔 Rank #${user.rank} with ${user.points} points! #ThoughtPolice #RedditAnalysis`;
+    
+    if (navigator.share && platform === 'native') {
       try {
-        const item = new ClipboardItem({ 'image/png': blob });
-        await navigator.clipboard.write([item]);
-        
-        // Show success feedback
-        const button = document.querySelector('.copy-button');
-        if (button) {
-          button.textContent = 'Copied!';
-          setTimeout(() => {
-            button.textContent = 'Copy Image';
-          }, 2000);
-        }
+        const file = new File([blob], `thought-police-${user.username}.png`, { type: 'image/png' });
+        await navigator.share({
+          title: 'My Thought Police Card',
+          text,
+          files: [file]
+        });
       } catch (error) {
-        console.log('Clipboard API failed, downloading instead');
+        console.log('Native sharing failed, falling back to download');
         downloadImage();
       }
-    }, 'image/png');
+    } else {
+      // Fallback to platform-specific URLs
+      const urls = {
+        twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+        instagram: '', // Instagram doesn't support direct URL sharing
+      };
+
+      if (urls[platform as keyof typeof urls]) {
+        window.open(urls[platform as keyof typeof urls], '_blank');
+      }
+      
+      // Also download the image for manual sharing
+      const link = document.createElement('a');
+      link.download = `thought-police-${user.username}.png`;
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    }
+  };
+
+  const copyToClipboard = async (imageUrl?: string) => {
+    let canvas;
+    if (imageUrl) {
+      // Convert data URL to blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      await handleClipboardCopy(blob);
+    } else {
+      canvas = await captureCard();
+      if (!canvas) return;
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        await handleClipboardCopy(blob);
+      }, 'image/png');
+    }
+  };
+
+  const handleClipboardCopy = async (blob: Blob) => {
+    try {
+      const item = new ClipboardItem({ 'image/png': blob });
+      await navigator.clipboard.write([item]);
+      
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.log('Clipboard API failed, downloading instead');
+      const link = document.createElement('a');
+      link.download = `thought-police-${user.username}.png`;
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    }
   };
 
   const getRankIcon = (rank: number) => {
@@ -632,9 +672,21 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                   exit={{ opacity: 0, scale: 0.8, y: -20 }}
                   className="flex flex-wrap items-center justify-center gap-3 p-4 bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-2xl border border-reddit-light-border dark:border-reddit-dark-border shadow-xl backdrop-blur-sm"
                 >
+                  {/* Capture & Preview Button */}
+                  <motion.button
+                    onClick={captureCard}
+                    disabled={isCapturing}
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Camera className="h-4 w-4" />
+                    <span>Preview</span>
+                  </motion.button>
+
                   {/* Download Button */}
                   <motion.button
-                    onClick={downloadImage}
+                    onClick={() => downloadImage()}
                     disabled={isCapturing}
                     className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                     whileHover={{ scale: 1.05 }}
@@ -646,14 +698,27 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
 
                   {/* Copy to Clipboard */}
                   <motion.button
-                    onClick={copyToClipboard}
+                    onClick={() => copyToClipboard()}
                     disabled={isCapturing}
-                    className="copy-button flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                      copySuccess 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Copy className="h-4 w-4" />
-                    <span>Copy Image</span>
+                    {copySuccess ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        <span>Copy</span>
+                      </>
+                    )}
                   </motion.button>
 
                   {/* Social Media Buttons */}
@@ -708,6 +773,130 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
           </motion.div>
         </motion.div>
       )}
+
+      {/* Image Preview Modal */}
+      <AnimatePresence>
+        {showImagePreview && capturedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
+            onClick={() => setShowImagePreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              className="relative max-w-4xl w-full bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-2xl overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-reddit-light-border dark:border-reddit-dark-border">
+                <h3 className="text-lg font-bold text-reddit-light-text dark:text-reddit-dark-text">
+                  📸 Card Preview (Mirrored View)
+                </h3>
+                <button
+                  onClick={() => setShowImagePreview(false)}
+                  className="p-2 hover:bg-reddit-light-bg-hover dark:hover:bg-reddit-dark-bg-hover rounded-full transition-colors"
+                >
+                  <X className="h-5 w-5 text-reddit-light-text dark:text-reddit-dark-text" />
+                </button>
+              </div>
+
+              {/* Mirrored Image */}
+              <div className="p-6 flex justify-center">
+                <div className="relative">
+                  <img
+                    src={capturedImage}
+                    alt="Captured card"
+                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
+                    style={{ transform: 'scaleX(-1)' }} // Mirror the image
+                  />
+                  <div className="absolute top-2 right-2 bg-reddit-orange text-white px-2 py-1 rounded-full text-xs font-medium">
+                    Mirrored View
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="p-4 border-t border-reddit-light-border dark:border-reddit-dark-border">
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <motion.button
+                    onClick={() => downloadImage(capturedImage)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => copyToClipboard(capturedImage)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      copySuccess 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {copySuccess ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        <span>Copy to Clipboard</span>
+                      </>
+                    )}
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => shareToSocial('twitter', capturedImage)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Twitter className="h-4 w-4" />
+                    <span>Twitter</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => shareToSocial('facebook', capturedImage)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-medium transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Facebook className="h-4 w-4" />
+                    <span>Facebook</span>
+                  </motion.button>
+
+                  {navigator.share && (
+                    <motion.button
+                      onClick={() => shareToSocial('native', capturedImage)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </motion.button>
+                  )}
+                </div>
+
+                <p className="text-center text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm mt-3">
+                  This mirrored view shows how your card will appear to others when shared
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 };
