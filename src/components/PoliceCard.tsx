@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Star, Award, QrCode } from 'lucide-react';
-import { User, PoliceCard as PoliceCardType } from '../types';
+import { Shield, Star, QrCode } from 'lucide-react';
+import { User } from '../types';
 import { rankInfo } from '../data/mockData';
 
 interface PoliceCardProps {
@@ -76,7 +76,7 @@ const PoliceCard: React.FC<PoliceCardProps> = ({ user, className = '' }) => {
               <div className="text-xs text-slate-400 dark:text-slate-300 transition-colors duration-200">Points</div>
             </div>
             <div className="text-center bg-black/20 dark:bg-black/30 rounded-lg p-2 backdrop-blur-sm transition-colors duration-200">
-              <div className="text-base font-bold text-reddit-blue drop-shadow-md">{user.badgeCount}</div>
+              <div className="text-base font-bold text-reddit-orange drop-shadow-md">{user.badgeCount}</div>
               <div className="text-xs text-slate-400 dark:text-slate-300 transition-colors duration-200">Badges</div>
             </div>
             <div className="text-center bg-black/20 dark:bg-black/30 rounded-lg p-2 backdrop-blur-sm transition-colors duration-200">
