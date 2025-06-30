@@ -11,8 +11,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   Area,
   AreaChart
 } from 'recharts';
@@ -21,10 +19,16 @@ import {
   Users, 
   Target, 
   AlertTriangle, 
-  Calendar,
   Award,
-  Eye,
-  MessageSquare
+  MessageSquare,
+  ArrowUp,
+  ArrowDown,
+  Share,
+  BarChart3,
+  PieChart as PieChartIcon,
+  Activity,
+  Shield,
+  Star
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import LoginPage from './LoginPage';
@@ -63,292 +67,446 @@ const StatsPage: React.FC = () => {
     { name: 'food', contradictions: 321, color: '#8b5cf6' }
   ];
 
-  const userActivityData = [
-    { time: '00:00', users: 45 },
-    { time: '04:00', users: 23 },
-    { time: '08:00', users: 89 },
-    { time: '12:00', users: 156 },
-    { time: '16:00', users: 234 },
-    { time: '20:00', users: 189 },
-    { time: '23:59', users: 78 }
-  ];
+
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-primary-900 dark:text-white mb-4 transition-colors duration-200"
-        >
-          Platform Statistics
-        </motion.h1>
-        <p className="text-primary-600 dark:text-primary-300 text-lg transition-colors duration-200">
-          Comprehensive analytics and insights from the Thought Police community
-        </p>
-      </div>
-
-      {/* Period Selector */}
-      <div className="flex justify-center">
-        <div className="bg-white dark:bg-primary-800 rounded-lg p-1 shadow-lg border border-primary-200 dark:border-primary-700 transition-colors duration-200">
-          {[
-            { key: '7d', label: '7 Days' },
-            { key: '30d', label: '30 Days' },
-            { key: '90d', label: '90 Days' },
-            { key: '1y', label: '1 Year' }
-          ].map((period) => (
-            <button
-              key={period.key}
-              onClick={() => setSelectedPeriod(period.key as any)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                selectedPeriod === period.key
-                  ? 'bg-reddit-blue text-white'
-                  : 'text-primary-600 dark:text-primary-300 hover:text-primary-900 dark:hover:text-white'
-              }`}
-            >
-              {period.label}
-            </button>
-          ))}
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Reddit-style Subreddit Header */}
+      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+        {/* Banner */}
+        <div className="h-24 bg-gradient-to-r from-blue-600 via-purple-600 to-reddit-orange relative">
+          <div className="absolute inset-0 bg-black/20"></div>
         </div>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-reddit-blue to-reddit-blue-dark rounded-xl p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Users className="h-8 w-8 opacity-80" />
-            <span className="text-sm opacity-80">+12% vs last month</span>
-          </div>
-          <div className="text-3xl font-bold">1,247</div>
-          <div className="opacity-80">Active Officers</div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <AlertTriangle className="h-8 w-8 opacity-80" />
-            <span className="text-sm opacity-80">+23% vs last month</span>
-          </div>
-          <div className="text-3xl font-bold">8,932</div>
-          <div className="opacity-80">Contradictions Found</div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <Target className="h-8 w-8 opacity-80" />
-            <span className="text-sm opacity-80">+2.1% vs last month</span>
-          </div>
-          <div className="text-3xl font-bold">87.3%</div>
-          <div className="opacity-80">Accuracy Rate</div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gradient-to-br from-reddit-orange to-reddit-orange-dark rounded-xl p-6 text-white"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <MessageSquare className="h-8 w-8 opacity-80" />
-            <span className="text-sm opacity-80">+45% vs last month</span>
-          </div>
-          <div className="text-3xl font-bold">156K</div>
-          <div className="opacity-80">Comments Analyzed</div>
-        </motion.div>
-      </div>
-
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Contradiction Trends */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Contradiction Trends</h3>
-            <TrendingUp className="h-5 w-5 text-green-600" />
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={contradictionTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="date" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px'
-                }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="contradictions" 
-                stroke="#0079D3" 
-                fill="#0079D3" 
-                fillOpacity={0.1}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </motion.div>
-
-        {/* Category Distribution */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Contradiction Categories</h3>
-            <Eye className="h-5 w-5 text-reddit-blue" />
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            {categoryData.map((category, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: category.color }}
-                ></div>
-                <span className="text-sm text-primary-600 dark:text-primary-400 transition-colors duration-200">{category.name}</span>
-                <span className="text-sm font-medium text-primary-900 dark:text-white transition-colors duration-200">{category.value}%</span>
+        
+        {/* Subreddit Info */}
+        <div className="px-6 py-4 relative">
+          <div className="flex items-start space-x-4">
+            <div className="relative -mt-8">
+              <div className="w-16 h-16 bg-reddit-orange rounded-full border-4 border-reddit-light-bg dark:border-reddit-dark-bg-paper flex items-center justify-center">
+                <BarChart3 className="h-8 w-8 text-white" />
               </div>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Top Subreddits */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Top Subreddits</h3>
-            <Award className="h-5 w-5 text-reddit-orange" />
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topSubredditsData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis type="number" stroke="#64748b" />
-              <YAxis dataKey="name" type="category" stroke="#64748b" width={120} />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px'
-                }}
-              />
-              <Bar dataKey="contradictions" fill="#FF4500" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </motion.div>
-
-        {/* User Activity */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="bg-white dark:bg-primary-800 rounded-xl shadow-lg p-6 border border-primary-200 dark:border-primary-700 transition-colors duration-200"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-primary-900 dark:text-white transition-colors duration-200">Daily User Activity</h3>
-            <Calendar className="h-5 w-5 text-reddit-orange" />
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={userActivityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="time" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="users" 
-                stroke="#0079D3" 
-                strokeWidth={3}
-                dot={{ fill: '#0079D3', strokeWidth: 2, r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </motion.div>
-      </div>
-
-      {/* Recent Achievements */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.9 }}
-        className="bg-gradient-to-r from-reddit-blue to-reddit-orange rounded-xl p-8 text-white"
-      >
-        <h3 className="text-2xl font-bold mb-6 text-center">Platform Milestones</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="bg-white/20 backdrop-blur rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Award className="h-8 w-8" />
             </div>
-            <div className="text-xl font-bold">100K+</div>
-            <div className="opacity-80">Total Analyses</div>
-          </div>
-          <div className="text-center">
-            <div className="bg-white/20 backdrop-blur rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Users className="h-8 w-8" />
+            <div className="flex-1 mt-2">
+              <h1 className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">
+                r/ThoughtPolice/Analytics
+              </h1>
+              <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mt-1">
+                Community insights and platform statistics • Real-time data from our thought police operations
+              </p>
+              <div className="flex items-center space-x-6 mt-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                <div className="flex items-center space-x-1">
+                  <Activity className="h-4 w-4" />
+                  <span>Live analytics</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Updated 2 min ago</span>
+                </div>
+              </div>
             </div>
-            <div className="text-xl font-bold">1M+</div>
-            <div className="opacity-80">Comments Processed</div>
-          </div>
-          <div className="text-center">
-            <div className="bg-white/20 backdrop-blur rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-              <Target className="h-8 w-8" />
+            
+            {/* Period Selector */}
+            <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-1 border border-reddit-light-border dark:border-reddit-dark-border">
+              {[
+                { key: '7d', label: '7D' },
+                { key: '30d', label: '30D' },
+                { key: '90d', label: '90D' },
+                { key: '1y', label: '1Y' }
+              ].map((period) => (
+                <button
+                  key={period.key}
+                                     onClick={() => setSelectedPeriod(period.key as '7d' | '30d' | '90d' | '1y')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    selectedPeriod === period.key
+                      ? 'bg-reddit-orange text-white'
+                      : 'text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-light-text dark:hover:text-reddit-dark-text'
+                  }`}
+                >
+                  {period.label}
+                </button>
+              ))}
             </div>
-            <div className="text-xl font-bold">85%+</div>
-            <div className="opacity-80">Community Satisfaction</div>
           </div>
         </div>
-      </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Key Metrics Post */}
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="flex items-center space-x-3">
+                <img
+                  src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_0.png"
+                  alt="Analytics Bot"
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">r/ThoughtPolice</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">•</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Posted by u/AnalyticsBot</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">5m ago</span>
+                    <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">LIVE</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              <h2 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4">
+                📊 Platform Performance Dashboard - Real-time Metrics
+              </h2>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Users className="h-5 w-5 text-reddit-orange" />
+                    <span className="text-xs text-green-600 font-medium">+12%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">1,247</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Active Officers</div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                    <span className="text-xs text-green-600 font-medium">+23%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">8,932</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Contradictions Found</div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Target className="h-5 w-5 text-green-600" />
+                    <span className="text-xs text-green-600 font-medium">+2.1%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">87.3%</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Accuracy Rate</div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                    <span className="text-xs text-green-600 font-medium">+45%</span>
+                  </div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">156K</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Comments Analyzed</div>
+                </motion.div>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover">
+              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                <div className="flex items-center space-x-1">
+                  <ArrowUp className="h-4 w-4 text-reddit-orange" />
+                  <span className="text-reddit-orange font-medium">847</span>
+                  <ArrowDown className="h-4 w-4" />
+                </div>
+                <div className="flex items-center space-x-1">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>32 comments</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Share className="h-4 w-4" />
+                  <span>Share</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Award className="h-4 w-4" />
+                  <span>5 awards</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trends Chart Post */}
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="flex items-center space-x-3">
+                <img
+                  src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_1.png"
+                  alt="Trend Analyzer"
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">r/ThoughtPolice</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">•</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Posted by u/trend_analyzer</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">1h ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              <h3 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+                📈 Contradiction Detection Trends
+              </h3>
+              <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={contradictionTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="date" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="contradictions" 
+                      stroke="#FF4500" 
+                      fill="#FF4500" 
+                      fillOpacity={0.1}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover">
+              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                <div className="flex items-center space-x-1">
+                  <ArrowUp className="h-4 w-4 text-reddit-orange" />
+                  <span className="text-reddit-orange font-medium">234</span>
+                  <ArrowDown className="h-4 w-4" />
+                </div>
+                <div className="flex items-center space-x-1">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>18 comments</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Share className="h-4 w-4" />
+                  <span>Share</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Subreddit Analysis Post */}
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="flex items-center space-x-3">
+                <img
+                  src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_2.png"
+                  alt="Subreddit Analyst"
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">r/ThoughtPolice</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">•</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Posted by u/subreddit_scout</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">3h ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              <h3 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 flex items-center">
+                <Award className="h-5 w-5 mr-2 text-reddit-orange" />
+                🏆 Top Contradiction Sources by Subreddit
+              </h3>
+              <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={topSubredditsData} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis type="number" stroke="#64748b" />
+                    <YAxis dataKey="name" type="category" stroke="#64748b" width={120} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Bar dataKey="contradictions" fill="#FF4500" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover">
+              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                <div className="flex items-center space-x-1">
+                  <ArrowUp className="h-4 w-4 text-reddit-orange" />
+                  <span className="text-reddit-orange font-medium">156</span>
+                  <ArrowDown className="h-4 w-4" />
+                </div>
+                <div className="flex items-center space-x-1">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>24 comments</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Share className="h-4 w-4" />
+                  <span>Share</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {/* Community Stats */}
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 bg-reddit-orange text-white font-medium">
+              Analytics Dashboard
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                Real-time analytics and insights from the Thought Police community platform.
+              </p>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Total Users</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">1,247</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Cases Solved</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">8,932</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Accuracy Rate</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">87.3%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Comments Analyzed</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">156K</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Distribution */}
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <h3 className="font-medium text-reddit-light-text dark:text-reddit-dark-text flex items-center">
+                <PieChartIcon className="h-4 w-4 mr-2" />
+                Contradiction Categories
+              </h3>
+            </div>
+            <div className="p-4">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="grid grid-cols-1 gap-2 mt-3">
+                {categoryData.map((category, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: category.color }}
+                      ></div>
+                      <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">{category.name}</span>
+                    </div>
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">{category.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Live Activity */}
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <h3 className="font-medium text-reddit-light-text dark:text-reddit-dark-text flex items-center">
+                <Activity className="h-4 w-4 mr-2" />
+                Live Activity
+              </h3>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text">47 users online</div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-reddit-orange rounded-full animate-pulse"></div>
+                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text">12 active analyses</div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text">234 comments processed</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Platform Milestones */}
+          <div className="bg-gradient-to-br from-reddit-orange via-red-500 to-reddit-orange-dark rounded-lg p-4 text-white">
+            <h3 className="font-bold mb-3 flex items-center">
+              <Shield className="h-4 w-4 mr-2" />
+              Platform Milestones
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Award className="h-4 w-4 opacity-80" />
+                  <span className="text-sm">Total Analyses</span>
+                </div>
+                <span className="font-bold">100K+</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-4 w-4 opacity-80" />
+                  <span className="text-sm">Comments Processed</span>
+                </div>
+                <span className="font-bold">1M+</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Star className="h-4 w-4 opacity-80" />
+                  <span className="text-sm">Community Rating</span>
+                </div>
+                <span className="font-bold">4.8/5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -12,7 +12,7 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-        <div className="min-h-screen bg-primary-50 dark:bg-primary-900 transition-colors duration-200">
+        <div className="min-h-screen bg-reddit-light-bg-light dark:bg-reddit-dark-bg transition-colors duration-200">
           <Navigation />
           <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Routes>

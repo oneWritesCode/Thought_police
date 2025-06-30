@@ -22,7 +22,13 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
   const [userPreview, setUserPreview] = useState<UserPreview | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
-  const [budgetStatus, setBudgetStatus] = useState<any>(null);
+  const [budgetStatus, setBudgetStatus] = useState<{
+    spent: number;
+    remaining: number;
+    percentage: number;
+    isExceeded: boolean;
+    isWarning: boolean;
+  } | null>(null);
 
   // Load budget status
   useEffect(() => {
@@ -61,7 +67,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
       } else {
         setUserPreview(preview);
       }
-    } catch (error) {
+    } catch {
       setValidationError('Unable to validate user');
       setUserPreview(null);
     } finally {
@@ -82,7 +88,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
   // Get the appropriate validation icon
   const getValidationIcon = () => {
     if (isValidating) {
-      return <Loader className="h-5 w-5 animate-spin text-reddit-blue" />;
+      return <Loader className="h-5 w-5 animate-spin text-reddit-orange" />;
     }
     
     if (validationError) {
@@ -106,17 +112,17 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-2xl mx-auto"
     >
-      <div className="bg-white dark:bg-primary-800 rounded-2xl shadow-xl p-8 border border-primary-200 dark:border-primary-700 transition-colors duration-200">
+      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-2xl shadow-xl p-8 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
         <div className="flex items-center justify-center mb-6">
-          <div className="bg-reddit-blue/10 dark:bg-reddit-blue/20 p-3 rounded-full transition-colors duration-200">
-            <Search className="h-8 w-8 text-reddit-blue" />
+          <div className="bg-reddit-orange/10 dark:bg-reddit-orange/20 p-3 rounded-full transition-colors duration-200">
+            <Search className="h-8 w-8 text-reddit-orange" />
           </div>
         </div>
         
-        <h2 className="text-2xl font-bold text-center text-primary-900 dark:text-white mb-2 transition-colors duration-200">
+        <h2 className="text-2xl font-bold text-center text-reddit-light-text dark:text-reddit-dark-text mb-2 transition-colors duration-200">
           Analyze Reddit User
         </h2>
-        <p className="text-primary-600 dark:text-primary-300 text-center mb-8 transition-colors duration-200">
+        <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-center mb-8 transition-colors duration-200">
           Enter a Reddit username to analyze their complete comment history for contradictions
         </p>
 
@@ -158,14 +164,14 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
           </div>
         )}
 
-        <div className="flex mb-6 bg-primary-100 dark:bg-primary-700 rounded-lg p-1 transition-colors duration-200">
+        <div className="flex mb-6 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-1 transition-colors duration-200">
           <button
             type="button"
             onClick={() => setSearchType('username')}
             className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               searchType === 'username'
-                ? 'bg-white dark:bg-primary-600 text-reddit-blue shadow-sm'
-                : 'text-primary-600 dark:text-primary-300 hover:text-primary-900 dark:hover:text-white'
+                ? 'bg-reddit-light-bg dark:bg-reddit-dark-bg-paper text-reddit-orange shadow-sm'
+                : 'text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange'
             }`}
           >
             <User className="h-4 w-4" />
@@ -176,8 +182,8 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
             onClick={() => setSearchType('url')}
             className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               searchType === 'url'
-                ? 'bg-white dark:bg-primary-600 text-reddit-blue shadow-sm'
-                : 'text-primary-600 dark:text-primary-300 hover:text-primary-900 dark:hover:text-white'
+                ? 'bg-reddit-light-bg dark:bg-reddit-dark-bg-paper text-reddit-orange shadow-sm'
+                : 'text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange'
             }`}
           >
             <ExternalLink className="h-4 w-4" />
@@ -187,7 +193,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2 transition-colors duration-200">
+            <label htmlFor="username" className="block text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text mb-2 transition-colors duration-200">
               {searchType === 'username' ? 'Reddit Username' : 'Reddit Profile URL'}
             </label>
             <div className="relative">
@@ -201,9 +207,9 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
                     ? 'Enter username (e.g., spez)' 
                     : 'Enter profile URL (e.g., reddit.com/user/spez)'
                 }
-                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-reddit-blue focus:border-transparent transition-colors bg-white dark:bg-primary-700 text-primary-900 dark:text-white placeholder-primary-400 dark:placeholder-primary-400 ${
+                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-reddit-orange focus:border-transparent transition-colors bg-reddit-light-bg dark:bg-reddit-dark-bg-paper text-reddit-light-text dark:text-reddit-dark-text placeholder-reddit-light-text-secondary dark:placeholder-reddit-dark-text-secondary ${
                   validationError ? 'border-red-300 dark:border-red-600' : 
-                  userPreview?.exists ? 'border-green-300 dark:border-green-600' : 'border-primary-300 dark:border-primary-600'
+                  userPreview?.exists ? 'border-green-300 dark:border-green-600' : 'border-reddit-light-border dark:border-reddit-dark-border'
                 }`}
                 disabled={isLoading}
               />
@@ -221,18 +227,18 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mt-3 p-4 bg-primary-50 dark:bg-primary-700 rounded-lg border border-primary-200 dark:border-primary-600 transition-colors duration-200"
+                className="mt-3 p-4 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-primary-900 dark:text-white transition-colors duration-200 truncate">
+                    <div className="text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200 truncate">
                       u/{username.replace(/^(https?:\/\/)?(www\.)?reddit\.com\/(u|user)\//, '')}
                     </div>
-                    <div className="text-xs text-primary-600 dark:text-primary-400 transition-colors duration-200">
+                    <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
                       {userPreview.karma.toLocaleString()} karma • Account age: {userPreview.accountAge}
                     </div>
                     {userPreview.estimatedComments > 0 && (
-                      <div className="text-xs text-reddit-blue mt-1 flex items-center space-x-1 transition-colors duration-200">
+                      <div className="text-xs text-reddit-orange mt-1 flex items-center space-x-1 transition-colors duration-200">
                         <Zap className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">~{userPreview.estimatedComments} comments estimated for comprehensive analysis</span>
                       </div>
@@ -264,7 +270,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
           <motion.button
             type="submit"
             disabled={!isValidForAnalysis || isLoading}
-            className="w-full bg-gradient-to-r from-reddit-blue to-reddit-blue-dark text-white py-3 px-6 rounded-lg font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-reddit-blue-dark hover:to-reddit-blue focus:ring-2 focus:ring-reddit-blue focus:ring-offset-2 transition-all duration-200"
+            className="w-full bg-gradient-to-r from-reddit-orange to-reddit-orange-dark text-white py-3 px-6 rounded-lg font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:from-reddit-orange-dark hover:to-reddit-orange focus:ring-2 focus:ring-reddit-orange focus:ring-offset-2 transition-all duration-200"
             whileHover={{ scale: isValidForAnalysis && !isLoading ? 1.02 : 1 }}
             whileTap={{ scale: isValidForAnalysis && !isLoading ? 0.98 : 1 }}
           >
@@ -282,18 +288,18 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
           </motion.button>
         </form>
 
-        <div className="mt-8 p-4 bg-reddit-blue/5 dark:bg-reddit-blue/10 rounded-lg border border-reddit-blue/20 dark:border-reddit-blue/30 transition-colors duration-200">
+        <div className="mt-8 p-4 bg-reddit-orange/5 dark:bg-reddit-orange/10 rounded-lg border border-reddit-orange/20 dark:border-reddit-orange/30 transition-colors duration-200">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
-              <Zap className="h-5 w-5 text-reddit-blue" />
+              <Zap className="h-5 w-5 text-reddit-orange" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-reddit-blue-dark dark:text-reddit-blue-light transition-colors duration-200">Unlimited History Analysis</h3>
-              <p className="mt-1 text-sm text-primary-700 dark:text-primary-300 transition-colors duration-200">
+              <h3 className="text-sm font-medium text-reddit-orange-dark dark:text-reddit-orange-light transition-colors duration-200">Unlimited History Analysis</h3>
+              <p className="mt-1 text-sm text-reddit-light-text dark:text-reddit-dark-text-secondary transition-colors duration-200">
                 Our enhanced system now fetches ALL available comments and posts using Reddit's pagination API + Pushshift for historical data. 
                 This ensures comprehensive analysis of the user's complete history (up to 5,000+ comments), not just recent activity.
               </p>
-              <div className="mt-2 text-xs text-reddit-blue transition-colors duration-200">
+                              <div className="mt-2 text-xs text-reddit-orange transition-colors duration-200">
                 <strong>Features:</strong> Streaming pagination • Smart deduplication • Budget-aware AI models • Enhanced fallback analysis
               </div>
             </div>
@@ -302,7 +308,7 @@ const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) 
 
         {/* Analysis details */}
         <div className="mt-4 text-center">
-          <p className="text-xs text-primary-500 dark:text-primary-400 transition-colors duration-200">
+          <p className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
             Optimized 2-stage pipeline • Token budget management • Persistent caching • 30-90 seconds processing time
           </p>
         </div>

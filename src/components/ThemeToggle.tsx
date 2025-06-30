@@ -11,8 +11,8 @@ const ThemeToggle: React.FC = () => {
       onClick={toggleTheme}
       className={`relative p-2 rounded-lg transition-colors duration-200 ${
         isDark 
-          ? 'bg-primary-700 text-white hover:bg-primary-600' 
-          : 'bg-primary-100 text-primary-600 hover:bg-primary-200'
+          ? 'bg-reddit-dark-bg-hover text-reddit-dark-text hover:bg-reddit-dark-border' 
+          : 'bg-reddit-light-bg-hover text-reddit-light-text-secondary hover:bg-reddit-light-border'
       }`}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
@@ -27,7 +27,7 @@ const ThemeToggle: React.FC = () => {
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         {isDark ? (
-          <Moon className="h-5 w-5 text-white" />
+          <Moon className="h-5 w-5 text-reddit-dark-text" />
         ) : (
           <Sun className="h-5 w-5 text-reddit-orange" />
         )}
