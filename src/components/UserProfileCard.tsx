@@ -110,37 +110,120 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
       closeButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
 
       // Wait a moment for elements to hide
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null, // Transparent background
-        scale: 3, // Higher scale for HD quality
+      // Create a temporary container with solid background
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'fixed';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = `${cardRef.current.offsetWidth}px`;
+      tempContainer.style.height = `${cardRef.current.offsetHeight}px`;
+      tempContainer.style.background = 'transparent';
+      tempContainer.style.zIndex = '-1';
+      
+      // Clone the card element
+      const cardClone = cardRef.current.cloneNode(true) as HTMLElement;
+      
+      // Remove any transform styles that might cause issues
+      cardClone.style.transform = 'none';
+      cardClone.style.perspective = 'none';
+      
+      // Find the actual card content (the 3D container)
+      const cardContent = cardClone.querySelector('[data-card-content]') as HTMLElement;
+      if (cardContent) {
+        cardContent.style.transform = 'none';
+        cardContent.style.transformStyle = 'flat';
+        
+        // Make sure we're showing the front side
+        const frontSide = cardContent.querySelector('.backface-hidden:first-child') as HTMLElement;
+        const backSide = cardContent.querySelector('.backface-hidden:last-child') as HTMLElement;
+        
+        if (frontSide && backSide) {
+          frontSide.style.transform = 'none';
+          frontSide.style.backfaceVisibility = 'visible';
+          frontSide.style.display = 'block';
+          
+          backSide.style.display = 'none';
+        }
+      }
+      
+      tempContainer.appendChild(cardClone);
+      document.body.appendChild(tempContainer);
+
+      // Capture with improved settings
+      const canvas = await html2canvas(tempContainer, {
+        backgroundColor: null, // Keep transparent for now
+        scale: 2, // High quality but not too heavy
         useCORS: true,
         allowTaint: true,
-        width: cardRef.current.offsetWidth,
-        height: cardRef.current.offsetHeight,
-        logging: false, // Disable console logs
+        logging: false,
         imageTimeout: 15000,
-        removeContainer: true,
+        removeContainer: false,
         foreignObjectRendering: true,
-        onclone: (clonedDoc) => {
-          // Ensure all styles are properly applied in the clone
-          const clonedElement = clonedDoc.querySelector('[data-card-ref]') as HTMLElement;
-          if (clonedElement) {
-            clonedElement.style.transform = 'none'; // Remove any transforms
-          }
-        }
+        width: tempContainer.offsetWidth,
+        height: tempContainer.offsetHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: tempContainer.offsetWidth,
+        windowHeight: tempContainer.offsetHeight
       });
 
+      // Clean up
+      document.body.removeChild(tempContainer);
+      
       // Restore buttons
       shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
       closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
 
-      const imageDataUrl = canvas.toDataURL('image/png', 1.0); // Maximum quality
+      // Convert to image with solid background if needed
+      const finalCanvas = document.createElement('canvas');
+      const ctx = finalCanvas.getContext('2d');
+      finalCanvas.width = canvas.width;
+      finalCanvas.height = canvas.height;
+      
+      if (ctx) {
+        // Fill with solid background color matching the card
+        const gradient = ctx.createLinearGradient(0, 0, finalCanvas.width, finalCanvas.height);
+        
+        // Use the rank-based gradient colors
+        switch (user.rank) {
+          case 1:
+            gradient.addColorStop(0, '#fbbf24'); // yellow-400
+            gradient.addColorStop(0.5, '#f59e0b'); // amber-500
+            gradient.addColorStop(1, '#d97706'); // yellow-600
+            break;
+          case 2:
+            gradient.addColorStop(0, '#d1d5db'); // gray-300
+            gradient.addColorStop(0.5, '#9ca3af'); // gray-400
+            gradient.addColorStop(1, '#6b7280'); // gray-500
+            break;
+          case 3:
+            gradient.addColorStop(0, '#fbbf24'); // amber-400
+            gradient.addColorStop(0.5, '#f97316'); // orange-500
+            gradient.addColorStop(1, '#ea580c'); // amber-600
+            break;
+          default:
+            gradient.addColorStop(0, '#FF4500'); // reddit-orange
+            gradient.addColorStop(0.5, '#dc2626'); // red-600
+            gradient.addColorStop(1, '#CC3700'); // reddit-orange-dark
+            break;
+        }
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+        
+        // Draw the captured content on top
+        ctx.drawImage(canvas, 0, 0);
+      }
+
+      const imageDataUrl = finalCanvas.toDataURL('image/png', 1.0);
       setCapturedImage(imageDataUrl);
       setShowImagePreview(true);
       
-      return canvas;
+      return finalCanvas;
     } catch (error) {
       console.error('Failed to capture card:', error);
       // Restore buttons even on error
@@ -340,6 +423,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
             onClick={(e) => e.stopPropagation()}
           >
             <motion.div
+              data-card-content="true"
               className="relative w-full h-full preserve-3d cursor-pointer"
               animate={{ rotateY: isFlipped ? 180 : 0 }}
               transition={{ duration: 0.8, ease: "easeInOut" }}
