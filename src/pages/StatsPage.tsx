@@ -28,10 +28,7 @@ import {
   PieChart as PieChartIcon,
   Activity,
   Shield,
-  Star,
-  Calendar,
-  Clock,
-  Zap
+  Star
 } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 import LoginPage from './LoginPage';
@@ -39,7 +36,6 @@ import LoginPage from './LoginPage';
 const StatsPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const { isAuthenticated } = useAuth0();
-  
   if (!isAuthenticated) {
     return <LoginPage />;
   }
@@ -71,29 +67,14 @@ const StatsPage: React.FC = () => {
     { name: 'food', contradictions: 321, color: '#8b5cf6' }
   ];
 
-  // Custom tooltip component for charts
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper border border-reddit-light-border dark:border-reddit-dark-border rounded-lg p-3 shadow-lg">
-          <p className="text-reddit-light-text dark:text-reddit-dark-text font-medium">{`${label}`}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-reddit-orange">
-              {`${entry.name}: ${entry.value}`}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Reddit-style Subreddit Header */}
-      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
+      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
         {/* Banner */}
-        <div className="h-24 bg-gradient-to-r from-reddit-blue via-reddit-orange to-red-500 relative">
+        <div className="h-24 bg-gradient-to-r from-blue-600 via-purple-600 to-reddit-orange relative">
           <div className="absolute inset-0 bg-black/20"></div>
         </div>
         
@@ -101,18 +82,18 @@ const StatsPage: React.FC = () => {
         <div className="px-6 py-4 relative">
           <div className="flex items-start space-x-4">
             <div className="relative -mt-8">
-              <div className="w-16 h-16 bg-reddit-orange rounded-full border-4 border-reddit-light-bg dark:border-reddit-dark-bg-paper flex items-center justify-center transition-colors duration-200">
+              <div className="w-16 h-16 bg-reddit-orange rounded-full border-4 border-reddit-light-bg dark:border-reddit-dark-bg-paper flex items-center justify-center">
                 <BarChart3 className="h-8 w-8 text-white" />
               </div>
             </div>
             <div className="flex-1 mt-2">
-              <h1 className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">
+              <h1 className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">
                 r/ThoughtPolice/Analytics
               </h1>
-              <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mt-1 transition-colors duration-200">
+              <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mt-1">
                 Community insights and platform statistics • Real-time data from our thought police operations
               </p>
-              <div className="flex items-center space-x-6 mt-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+              <div className="flex items-center space-x-6 mt-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
                 <div className="flex items-center space-x-1">
                   <Activity className="h-4 w-4" />
                   <span>Live analytics</span>
@@ -125,7 +106,7 @@ const StatsPage: React.FC = () => {
             </div>
             
             {/* Period Selector */}
-            <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-1 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+            <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-1 border border-reddit-light-border dark:border-reddit-dark-border">
               {[
                 { key: '7d', label: '7D' },
                 { key: '30d', label: '30D' },
@@ -134,8 +115,8 @@ const StatsPage: React.FC = () => {
               ].map((period) => (
                 <button
                   key={period.key}
-                  onClick={() => setSelectedPeriod(period.key as '7d' | '30d' | '90d' | '1y')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors duration-200 ${
+                                     onClick={() => setSelectedPeriod(period.key as '7d' | '30d' | '90d' | '1y')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                     selectedPeriod === period.key
                       ? 'bg-reddit-orange text-white'
                       : 'text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-light-text dark:hover:text-reddit-dark-text'
@@ -153,8 +134,8 @@ const StatsPage: React.FC = () => {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-4">
           {/* Key Metrics Post */}
-          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
-            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border">
               <div className="flex items-center space-x-3">
                 <img
                   src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_0.png"
@@ -163,10 +144,10 @@ const StatsPage: React.FC = () => {
                 />
                 <div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">r/ThoughtPolice</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">•</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Posted by u/AnalyticsBot</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">5m ago</span>
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">r/ThoughtPolice</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">•</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Posted by u/AnalyticsBot</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">5m ago</span>
                     <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">LIVE</div>
                   </div>
                 </div>
@@ -174,7 +155,7 @@ const StatsPage: React.FC = () => {
             </div>
             
             <div className="p-4">
-              <h2 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 transition-colors duration-200">
+              <h2 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4">
                 📊 Platform Performance Dashboard - Real-time Metrics
               </h2>
               
@@ -183,62 +164,62 @@ const StatsPage: React.FC = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1 }}
-                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200"
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Users className="h-5 w-5 text-reddit-orange" />
                     <span className="text-xs text-green-600 font-medium">+12%</span>
                   </div>
-                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">1,247</div>
-                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Active Officers</div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">1,247</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Active Officers</div>
                 </motion.div>
 
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200"
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <AlertTriangle className="h-5 w-5 text-red-500" />
                     <span className="text-xs text-green-600 font-medium">+23%</span>
                   </div>
-                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">8,932</div>
-                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Contradictions Found</div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">8,932</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Contradictions Found</div>
                 </motion.div>
 
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 }}
-                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200"
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <Target className="h-5 w-5 text-green-600" />
                     <span className="text-xs text-green-600 font-medium">+2.1%</span>
                   </div>
-                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">87.3%</div>
-                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Accuracy Rate</div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">87.3%</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Accuracy Rate</div>
                 </motion.div>
 
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200"
+                  className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <MessageSquare className="h-5 w-5 text-blue-600" />
                     <span className="text-xs text-green-600 font-medium">+45%</span>
                   </div>
-                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">156K</div>
-                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Comments Analyzed</div>
+                  <div className="text-2xl font-bold text-reddit-light-text dark:text-reddit-dark-text">156K</div>
+                  <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Comments Analyzed</div>
                 </motion.div>
               </div>
             </div>
 
-            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover transition-colors duration-200">
-              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover">
+              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
                 <div className="flex items-center space-x-1">
                   <ArrowUp className="h-4 w-4 text-reddit-orange" />
                   <span className="text-reddit-orange font-medium">847</span>
@@ -261,8 +242,8 @@ const StatsPage: React.FC = () => {
           </div>
 
           {/* Trends Chart Post */}
-          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
-            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border">
               <div className="flex items-center space-x-3">
                 <img
                   src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_1.png"
@@ -271,32 +252,33 @@ const StatsPage: React.FC = () => {
                 />
                 <div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">r/ThoughtPolice</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">•</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Posted by u/trend_analyzer</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">1h ago</span>
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">r/ThoughtPolice</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">•</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Posted by u/trend_analyzer</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">1h ago</span>
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="p-4">
-              <h3 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 flex items-center transition-colors duration-200">
+              <h3 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
                 📈 Contradiction Detection Trends
               </h3>
-              <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+              <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
                 <ResponsiveContainer width="100%" height={250}>
                   <AreaChart data={contradictionTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-reddit-light-border dark:stroke-reddit-dark-border" />
-                    <XAxis 
-                      dataKey="date" 
-                      className="fill-reddit-light-text-secondary dark:fill-reddit-dark-text-secondary"
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="date" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
                     />
-                    <YAxis 
-                      className="fill-reddit-light-text-secondary dark:fill-reddit-dark-text-secondary"
-                    />
-                    <Tooltip content={<CustomTooltip />} />
                     <Area 
                       type="monotone" 
                       dataKey="contradictions" 
@@ -309,8 +291,8 @@ const StatsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover transition-colors duration-200">
-              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover">
+              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
                 <div className="flex items-center space-x-1">
                   <ArrowUp className="h-4 w-4 text-reddit-orange" />
                   <span className="text-reddit-orange font-medium">234</span>
@@ -329,8 +311,8 @@ const StatsPage: React.FC = () => {
           </div>
 
           {/* Subreddit Analysis Post */}
-          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
-            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-reddit-light-border dark:border-reddit-dark-border">
               <div className="flex items-center space-x-3">
                 <img
                   src="https://www.redditstatic.com/avatars/defaults/v2/avatar_default_2.png"
@@ -339,43 +321,41 @@ const StatsPage: React.FC = () => {
                 />
                 <div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">r/ThoughtPolice</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">•</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Posted by u/subreddit_scout</span>
-                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">3h ago</span>
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">r/ThoughtPolice</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">•</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Posted by u/subreddit_scout</span>
+                    <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">3h ago</span>
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="p-4">
-              <h3 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 flex items-center transition-colors duration-200">
+              <h3 className="text-lg font-semibold text-reddit-light-text dark:text-reddit-dark-text mb-4 flex items-center">
                 <Award className="h-5 w-5 mr-2 text-reddit-orange" />
                 🏆 Top Contradiction Sources by Subreddit
               </h3>
-              <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+              <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={topSubredditsData} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-reddit-light-border dark:stroke-reddit-dark-border" />
-                    <XAxis 
-                      type="number" 
-                      className="fill-reddit-light-text-secondary dark:fill-reddit-dark-text-secondary"
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis type="number" stroke="#64748b" />
+                    <YAxis dataKey="name" type="category" stroke="#64748b" width={120} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px'
+                      }}
                     />
-                    <YAxis 
-                      dataKey="name" 
-                      type="category" 
-                      className="fill-reddit-light-text-secondary dark:fill-reddit-dark-text-secondary"
-                      width={120} 
-                    />
-                    <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="contradictions" fill="#FF4500" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover transition-colors duration-200">
-              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+            <div className="px-4 py-2 border-t border-reddit-light-border dark:border-reddit-dark-border bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover">
+              <div className="flex items-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
                 <div className="flex items-center space-x-1">
                   <ArrowUp className="h-4 w-4 text-reddit-orange" />
                   <span className="text-reddit-orange font-medium">156</span>
@@ -397,40 +377,40 @@ const StatsPage: React.FC = () => {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Community Stats */}
-          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
             <div className="px-4 py-3 bg-reddit-orange text-white font-medium">
               Analytics Dashboard
             </div>
             <div className="p-4 space-y-4">
-              <p className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+              <p className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
                 Real-time analytics and insights from the Thought Police community platform.
               </p>
               
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm transition-colors duration-200">Total Users</span>
-                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">1,247</span>
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Total Users</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">1,247</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm transition-colors duration-200">Cases Solved</span>
-                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">8,932</span>
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Cases Solved</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">8,932</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm transition-colors duration-200">Accuracy Rate</span>
-                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">87.3%</span>
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Accuracy Rate</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">87.3%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm transition-colors duration-200">Comments Analyzed</span>
-                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">156K</span>
+                  <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm">Comments Analyzed</span>
+                  <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">156K</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Category Distribution */}
-          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
-            <div className="px-4 py-3 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
-              <h3 className="font-medium text-reddit-light-text dark:text-reddit-dark-text flex items-center transition-colors duration-200">
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <h3 className="font-medium text-reddit-light-text dark:text-reddit-dark-text flex items-center">
                 <PieChartIcon className="h-4 w-4 mr-2" />
                 Contradiction Categories
               </h3>
@@ -451,7 +431,7 @@ const StatsPage: React.FC = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
               <div className="grid grid-cols-1 gap-2 mt-3">
@@ -462,9 +442,9 @@ const StatsPage: React.FC = () => {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: category.color }}
                       ></div>
-                      <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">{category.name}</span>
+                      <span className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">{category.name}</span>
                     </div>
-                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">{category.value}%</span>
+                    <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text">{category.value}%</span>
                   </div>
                 ))}
               </div>
@@ -472,9 +452,9 @@ const StatsPage: React.FC = () => {
           </div>
 
           {/* Live Activity */}
-          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden transition-colors duration-200">
-            <div className="px-4 py-3 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
-              <h3 className="font-medium text-reddit-light-text dark:text-reddit-dark-text flex items-center transition-colors duration-200">
+          <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+            <div className="px-4 py-3 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border">
+              <h3 className="font-medium text-reddit-light-text dark:text-reddit-dark-text flex items-center">
                 <Activity className="h-4 w-4 mr-2" />
                 Live Activity
               </h3>
@@ -482,15 +462,15 @@ const StatsPage: React.FC = () => {
             <div className="p-4 space-y-3">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">47 users online</div>
+                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text">47 users online</div>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-reddit-orange rounded-full animate-pulse"></div>
-                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">12 active analyses</div>
+                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text">12 active analyses</div>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">234 comments processed</div>
+                <div className="text-sm text-reddit-light-text dark:text-reddit-dark-text">234 comments processed</div>
               </div>
             </div>
           </div>
