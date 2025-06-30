@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, LogIn, UserCheck, Lock, Zap } from 'lucide-react';
+import { Shield, LogIn, UserCheck, Lock, Zap, ArrowLeft, Users, Target, Award } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
@@ -29,106 +29,169 @@ const LoginPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-reddit-light-bg-light dark:bg-reddit-dark-bg flex items-center justify-center transition-colors duration-200">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
+          <div className="animate-spin h-8 w-8 border-2 border-reddit-orange border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-full shadow-lg mx-auto w-20 h-20 flex items-center justify-center mb-6"
-          >
-            <Shield className="h-10 w-10 text-white" />
-          </motion.div>
-          
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            Welcome to{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Thought Police
-            </span>
-          </h1>
-          <p className="text-slate-600">
-            Sign in to access your officer profile and track your progress
-          </p>
+    <div className="min-h-screen bg-reddit-light-bg-light dark:bg-reddit-dark-bg transition-colors duration-200">
+      {/* Reddit-style Header */}
+      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-light shadow-sm border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Shield className="h-8 w-8 text-reddit-orange" />
+                <div className="absolute inset-0 bg-reddit-orange/20 rounded-full animate-pulse"></div>
+              </div>
+              <span className="text-xl font-bold text-reddit-light-text dark:text-reddit-dark-text transition-colors duration-200">Thought Police</span>
+            </div>
+            
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center space-x-2 text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange transition-colors duration-200"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm font-medium">Back to Home</span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Login Card */}
+      {/* Main Content */}
+      <div className="flex items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl shadow-xl p-8 border border-slate-200"
+          className="max-w-md w-full"
         >
-          <div className="text-center mb-6">
-            <Lock className="h-8 w-8 text-slate-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Authentication Required</h2>
-            <p className="text-slate-600 text-sm">
-              You need to be signed in to access your profile and track your detective work.
+          {/* Welcome Section */}
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-r from-reddit-orange to-reddit-orange-dark p-4 rounded-full shadow-lg mx-auto w-20 h-20 flex items-center justify-center mb-6"
+            >
+              <Shield className="h-10 w-10 text-white" />
+            </motion.div>
+            
+            <h1 className="text-3xl font-bold text-reddit-light-text dark:text-reddit-dark-text mb-2 transition-colors duration-200">
+              Welcome to{' '}
+              <span className="bg-gradient-to-r from-reddit-orange to-reddit-orange-dark bg-clip-text text-transparent">
+                Thought Police
+              </span>
+            </h1>
+            <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+              Sign in to access your officer profile and track your progress
             </p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-3 mb-6">
-            <div className="flex items-center space-x-3 text-sm text-slate-600">
-              <UserCheck className="h-4 w-4 text-green-500" />
-              <span>Secure authentication with Auth0</span>
-            </div>
-            <div className="flex items-center space-x-3 text-sm text-slate-600">
-              <Zap className="h-4 w-4 text-blue-500" />
-              <span>Track your contradiction discoveries</span>
-            </div>
-            <div className="flex items-center space-x-3 text-sm text-slate-600">
-              <Shield className="h-4 w-4 text-purple-500" />
-              <span>Earn badges and climb the leaderboard</span>
-            </div>
-          </div>
-
-          {/* Login Button */}
-          <button
-            onClick={handleLogin}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
+          {/* Login Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-2xl shadow-xl p-8 border border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200"
           >
-            <LogIn className="h-5 w-5" />
-            <span>Sign In to Continue</span>
-          </button>
+            <div className="text-center mb-6">
+              <Lock className="h-8 w-8 text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mx-auto mb-4 transition-colors duration-200" />
+              <h2 className="text-xl font-bold text-reddit-light-text dark:text-reddit-dark-text mb-2 transition-colors duration-200">Authentication Required</h2>
+              <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm transition-colors duration-200">
+                You need to be signed in to access your profile and track your detective work.
+              </p>
+            </div>
 
-          <p className="text-xs text-slate-500 text-center mt-4">
-            By signing in, you agree to our terms of service and privacy policy.
-          </p>
-        </motion.div>
+            {/* Features */}
+            <div className="space-y-3 mb-6">
+              <div className="flex items-center space-x-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+                <UserCheck className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <span>Secure authentication with Auth0</span>
+              </div>
+              <div className="flex items-center space-x-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+                <Target className="h-4 w-4 text-reddit-orange flex-shrink-0" />
+                <span>Track your contradiction discoveries</span>
+              </div>
+              <div className="flex items-center space-x-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+                <Award className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                <span>Earn badges and climb the leaderboard</span>
+              </div>
+              <div className="flex items-center space-x-3 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+                <Users className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <span>Join the community of digital detectives</span>
+              </div>
+            </div>
 
-        {/* Back to Home */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center mt-6"
-        >
-          <button
-            onClick={() => navigate('/')}
-            className="text-slate-600 hover:text-slate-800 text-sm font-medium"
+            {/* Login Button */}
+            <motion.button
+              onClick={handleLogin}
+              className="w-full bg-gradient-to-r from-reddit-orange to-reddit-orange-dark text-white py-3 px-6 rounded-lg font-medium hover:from-reddit-orange-dark hover:to-reddit-orange focus:outline-none focus:ring-2 focus:ring-reddit-orange focus:ring-offset-2 focus:ring-offset-reddit-light-bg dark:focus:ring-offset-reddit-dark-bg-paper transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <LogIn className="h-5 w-5" />
+              <span>Sign In to Continue</span>
+            </motion.button>
+
+            <p className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-center mt-4 transition-colors duration-200">
+              By signing in, you agree to our terms of service and privacy policy.
+            </p>
+          </motion.div>
+
+          {/* Community Stats */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border p-6 transition-colors duration-200"
           >
-            ← Back to Home
-          </button>
+            <h3 className="text-lg font-bold text-reddit-light-text dark:text-reddit-dark-text mb-4 text-center transition-colors duration-200">
+              🏆 Join Our Community
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-reddit-orange mb-1">1,247</div>
+                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Active Officers</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600 mb-1">8,932</div>
+                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Cases Solved</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600 mb-1">87.3%</div>
+                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Accuracy Rate</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600 mb-1">156K</div>
+                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Comments Analyzed</div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Reddit-style Footer */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="mt-6 text-center"
+          >
+            <div className="flex items-center justify-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
+              <span>Powered by AI</span>
+              <span>•</span>
+              <span>Real-time Analysis</span>
+              <span>•</span>
+              <span>Community Driven</span>
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   );
 };
 
-export default LoginPage; 
+export default LoginPage;
