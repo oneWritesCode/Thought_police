@@ -109,26 +109,45 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
       shareButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
       closeButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
 
+      // Wait a moment for elements to hide
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: 'transparent',
-        scale: 2,
+        backgroundColor: null, // Transparent background
+        scale: 3, // Higher scale for HD quality
         useCORS: true,
         allowTaint: true,
         width: cardRef.current.offsetWidth,
         height: cardRef.current.offsetHeight,
+        logging: false, // Disable console logs
+        imageTimeout: 15000,
+        removeContainer: true,
+        foreignObjectRendering: true,
+        onclone: (clonedDoc) => {
+          // Ensure all styles are properly applied in the clone
+          const clonedElement = clonedDoc.querySelector('[data-card-ref]') as HTMLElement;
+          if (clonedElement) {
+            clonedElement.style.transform = 'none'; // Remove any transforms
+          }
+        }
       });
 
       // Restore buttons
       shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
       closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
 
-      const imageDataUrl = canvas.toDataURL('image/png');
+      const imageDataUrl = canvas.toDataURL('image/png', 1.0); // Maximum quality
       setCapturedImage(imageDataUrl);
       setShowImagePreview(true);
       
       return canvas;
     } catch (error) {
       console.error('Failed to capture card:', error);
+      // Restore buttons even on error
+      const shareButtons = document.querySelectorAll('.share-controls');
+      const closeButtons = document.querySelectorAll('.close-button');
+      shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
+      closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
       return null;
     } finally {
       setIsCapturing(false);
@@ -150,7 +169,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
 
       const link = document.createElement('a');
       link.download = `thought-police-${user.username}-card.png`;
-      link.href = canvas.toDataURL();
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
     }
   };
@@ -169,7 +188,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         handleSocialShare(platform, blob);
-      }, 'image/png');
+      }, 'image/png', 1.0);
     }
   };
 
@@ -222,7 +241,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         await handleClipboardCopy(blob);
-      }, 'image/png');
+      }, 'image/png', 1.0);
     }
   };
 
@@ -302,6 +321,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
           {/* 3D Card Container */}
           <motion.div
             ref={cardRef}
+            data-card-ref="true"
             initial={{ scale: 0.5, rotateY: -180, opacity: 0 }}
             animate={{ scale: 1, rotateY: 0, opacity: 1 }}
             exit={{ scale: 0.5, rotateY: 180, opacity: 0 }}
@@ -653,7 +673,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
               {isCapturing ? (
                 <>
                   <Camera className="h-5 w-5 animate-pulse" />
-                  <span>Capturing...</span>
+                  <span>Capturing HD Image...</span>
                 </>
               ) : (
                 <>
@@ -681,7 +701,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                     whileTap={{ scale: 0.95 }}
                   >
                     <Camera className="h-4 w-4" />
-                    <span>Preview</span>
+                    <span>Preview HD</span>
                   </motion.button>
 
                   {/* Download Button */}
@@ -768,13 +788,13 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
               transition={{ delay: 0.8 }}
               className="text-white/60 text-sm text-center max-w-md"
             >
-              Capture and share your Thought Police officer card with friends!
+              Capture and share your HD Thought Police officer card!
             </motion.p>
           </motion.div>
         </motion.div>
       )}
 
-      {/* Image Preview Modal */}
+      {/* HD Image Preview Modal */}
       <AnimatePresence>
         {showImagePreview && capturedImage && (
           <motion.div
@@ -795,7 +815,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-reddit-light-border dark:border-reddit-dark-border">
                 <h3 className="text-lg font-bold text-reddit-light-text dark:text-reddit-dark-text">
-                  📸 Card Preview (Mirrored View)
+                  📸 HD Card Preview
                 </h3>
                 <button
                   onClick={() => setShowImagePreview(false)}
@@ -805,17 +825,16 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                 </button>
               </div>
 
-              {/* Mirrored Image */}
+              {/* HD Image */}
               <div className="p-6 flex justify-center">
                 <div className="relative">
                   <img
                     src={capturedImage}
-                    alt="Captured card"
+                    alt="HD Captured card"
                     className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
-                    style={{ transform: 'scaleX(-1)' }} // Mirror the image
                   />
-                  <div className="absolute top-2 right-2 bg-reddit-orange text-white px-2 py-1 rounded-full text-xs font-medium">
-                    Mirrored View
+                  <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    HD Quality
                   </div>
                 </div>
               </div>
@@ -830,7 +849,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                     whileTap={{ scale: 0.95 }}
                   >
                     <Download className="h-4 w-4" />
-                    <span>Download</span>
+                    <span>Download HD</span>
                   </motion.button>
 
                   <motion.button
@@ -890,7 +909,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                 </div>
 
                 <p className="text-center text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary text-sm mt-3">
-                  This mirrored view shows how your card will appear to others when shared
+                  High-definition screenshot ready for sharing on social media
                 </p>
               </div>
             </motion.div>
