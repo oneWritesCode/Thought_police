@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Crown, Star, ArrowUp, Users, MessageSquare } from 'lucide-react';
+import UserProfileCard from './UserProfileCard';
 
 // Extended mock data with 20+ users for the leaderboard
 const leaderboardUsers = [
@@ -32,6 +33,19 @@ const leaderboardUsers = [
 ];
 
 const Leaderboard: React.FC = () => {
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isCardOpen, setIsCardOpen] = useState(false);
+
+  const handleUserClick = (user: any) => {
+    setSelectedUser(user);
+    setIsCardOpen(true);
+  };
+
+  const handleCloseCard = () => {
+    setIsCardOpen(false);
+    setTimeout(() => setSelectedUser(null), 300);
+  };
+
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
@@ -86,167 +100,177 @@ const Leaderboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Reddit-style Header */}
-      <div className="text-center relative">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="relative"
-        >
-          <h1 className="text-4xl font-bold text-reddit-light-text dark:text-reddit-dark-text mb-4">
-            🏆 r/ThoughtPolice Leaderboard
-          </h1>
-          <div className="flex justify-center items-center space-x-6 mb-6">
-            <div className="flex items-center space-x-2 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover px-4 py-2 rounded-full border border-reddit-light-border dark:border-reddit-dark-border">
-              <Users className="h-4 w-4 text-reddit-orange" />
-              <span className="text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text">25 Active Users</span>
-            </div>
-            <div className="flex items-center space-x-2 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover px-4 py-2 rounded-full border border-reddit-light-border dark:border-reddit-dark-border">
-              <MessageSquare className="h-4 w-4 text-reddit-orange" />
-              <span className="text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text">12.4K Total Points</span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Reddit-style Leaderboard */}
-      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
-        {/* Header Row */}
-        <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border px-4 py-3">
-          <div className="flex items-center justify-between text-sm font-medium text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary uppercase tracking-wide">
-            <span>User</span>
-            <div className="flex items-center space-x-12">
-              <span>Points</span>
-              <span>Cases</span>
-              <span>Karma</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Leaderboard Entries */}
-        <div className="divide-y divide-reddit-light-border dark:divide-reddit-dark-border">
-          {leaderboardUsers.map((user, index) => (
-            <motion.div
-              key={user.username}
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.03 }}
-              className={`${getRankBackground(user.rank)} transition-all duration-200 group relative`}
-            >
-              {/* Special badge for top 3 */}
-              {user.rank <= 3 && (
-                <div className="absolute top-2 right-2">
-                  <Star className="h-4 w-4 text-reddit-orange animate-pulse" />
-                </div>
-              )}
-
-              <div className="px-4 py-4 flex items-center justify-between">
-                {/* Left side: Rank, Avatar, and Username - Made Wider */}
-                <div className="flex items-center space-x-6 flex-1 max-w-2xl">
-                  {/* Rank */}
-                  <div className="flex items-center justify-center w-10 flex-shrink-0">
-                    {getRankIcon(user.rank)}
-                  </div>
-
-                  {/* Reddit-style upvote indicator */}
-                  <div className="flex flex-col items-center space-y-1 flex-shrink-0">
-                    <ArrowUp className="h-4 w-4 text-reddit-orange" />
-                    <div className="text-xs font-bold text-reddit-orange">
-                      {Math.floor(user.points / 10)}
-                    </div>
-                  </div>
-
-                  {/* Avatar and Username - Expanded */}
-                  <div className="flex items-center space-x-5 flex-1 min-w-0">
-                    <img
-                      src={getRedditAvatar(user.username)}
-                      alt={user.username}
-                      className="w-12 h-12 rounded-full bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border border-reddit-light-border dark:border-reddit-dark-border flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3 flex-wrap">
-                        <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text group-hover:text-reddit-orange transition-colors text-base truncate">
-                          u/{user.username}
-                        </span>
-                        {user.rank <= 3 && (
-                          <span className="px-2 py-1 text-xs bg-reddit-orange text-white rounded-full font-medium flex-shrink-0">
-                            TOP {user.rank}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mt-1">
-                        Rank #{user.rank} • Active contradiction hunter
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right side: Stats in Reddit-style */}
-                <div className="flex items-center space-x-12">
-                  {/* Points */}
-                  <div className="text-center min-w-[60px]">
-                    <div className="text-lg font-bold text-reddit-orange">
-                      {user.points.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
-                      pts
-                    </div>
-                  </div>
-
-                  {/* Cases */}
-                  <div className="text-center min-w-[50px]">
-                    <div className="text-lg font-bold text-green-600">
-                      {user.cases}
-                    </div>
-                    <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
-                      cases
-                    </div>
-                  </div>
-
-                  {/* Karma */}
-                  <div className="text-center min-w-[60px]">
-                    <div className="text-lg font-bold text-blue-600">
-                      {user.karma.toLocaleString()}
-                    </div>
-                    <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
-                      karma
-                    </div>
-                  </div>
-                </div>
+    <>
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Reddit-style Header */}
+        <div className="text-center relative">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative"
+          >
+            <h1 className="text-4xl font-bold text-reddit-light-text dark:text-reddit-dark-text mb-4">
+              🏆 r/ThoughtPolice Leaderboard
+            </h1>
+            <div className="flex justify-center items-center space-x-6 mb-6">
+              <div className="flex items-center space-x-2 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover px-4 py-2 rounded-full border border-reddit-light-border dark:border-reddit-dark-border">
+                <Users className="h-4 w-4 text-reddit-orange" />
+                <span className="text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text">25 Active Users</span>
               </div>
-            </motion.div>
-          ))}
+              <div className="flex items-center space-x-2 bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover px-4 py-2 rounded-full border border-reddit-light-border dark:border-reddit-dark-border">
+                <MessageSquare className="h-4 w-4 text-reddit-orange" />
+                <span className="text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text">12.4K Total Points</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Reddit-style Leaderboard */}
+        <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border overflow-hidden">
+          {/* Header Row */}
+          <div className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border-b border-reddit-light-border dark:border-reddit-dark-border px-4 py-3">
+            <div className="flex items-center justify-between text-sm font-medium text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary uppercase tracking-wide">
+              <span>User</span>
+              <div className="flex items-center space-x-12">
+                <span>Points</span>
+                <span>Cases</span>
+                <span>Karma</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Leaderboard Entries */}
+          <div className="divide-y divide-reddit-light-border dark:divide-reddit-dark-border">
+            {leaderboardUsers.map((user, index) => (
+              <motion.div
+                key={user.username}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.03 }}
+                className={`${getRankBackground(user.rank)} transition-all duration-200 group relative cursor-pointer hover:scale-[1.02] hover:shadow-lg`}
+                onClick={() => handleUserClick(user)}
+              >
+                {/* Special badge for top 3 */}
+                {user.rank <= 3 && (
+                  <div className="absolute top-2 right-2">
+                    <Star className="h-4 w-4 text-reddit-orange animate-pulse" />
+                  </div>
+                )}
+
+                <div className="px-4 py-4 flex items-center justify-between">
+                  {/* Left side: Rank, Avatar, and Username - Made Wider */}
+                  <div className="flex items-center space-x-6 flex-1 max-w-2xl">
+                    {/* Rank */}
+                    <div className="flex items-center justify-center w-10 flex-shrink-0">
+                      {getRankIcon(user.rank)}
+                    </div>
+
+                    {/* Reddit-style upvote indicator */}
+                    <div className="flex flex-col items-center space-y-1 flex-shrink-0">
+                      <ArrowUp className="h-4 w-4 text-reddit-orange" />
+                      <div className="text-xs font-bold text-reddit-orange">
+                        {Math.floor(user.points / 10)}
+                      </div>
+                    </div>
+
+                    {/* Avatar and Username - Expanded */}
+                    <div className="flex items-center space-x-5 flex-1 min-w-0">
+                      <img
+                        src={getRedditAvatar(user.username)}
+                        alt={user.username}
+                        className="w-12 h-12 rounded-full bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border border-reddit-light-border dark:border-reddit-dark-border flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 flex-wrap">
+                          <span className="font-medium text-reddit-light-text dark:text-reddit-dark-text group-hover:text-reddit-orange transition-colors text-base truncate">
+                            u/{user.username}
+                          </span>
+                          {user.rank <= 3 && (
+                            <span className="px-2 py-1 text-xs bg-reddit-orange text-white rounded-full font-medium flex-shrink-0">
+                              TOP {user.rank}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mt-1">
+                          Rank #{user.rank} • Active contradiction hunter
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right side: Stats in Reddit-style */}
+                  <div className="flex items-center space-x-12">
+                    {/* Points */}
+                    <div className="text-center min-w-[60px]">
+                      <div className="text-lg font-bold text-reddit-orange">
+                        {user.points.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                        pts
+                      </div>
+                    </div>
+
+                    {/* Cases */}
+                    <div className="text-center min-w-[50px]">
+                      <div className="text-lg font-bold text-green-600">
+                        {user.cases}
+                      </div>
+                      <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                        cases
+                      </div>
+                    </div>
+
+                    {/* Karma */}
+                    <div className="text-center min-w-[60px]">
+                      <div className="text-lg font-bold text-blue-600">
+                        {user.karma.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">
+                        karma
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Reddit-style Stats Footer */}
+        <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border p-6">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-bold text-reddit-light-text dark:text-reddit-dark-text">
+              📊 Community Stats
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="text-2xl font-bold text-reddit-orange mb-1">25</div>
+              <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Active Users</div>
+            </div>
+            <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="text-2xl font-bold text-green-600 mb-1">456</div>
+              <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Cases Solved</div>
+            </div>
+            <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="text-2xl font-bold text-blue-600 mb-1">89%</div>
+              <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Avg Accuracy</div>
+            </div>
+            <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
+              <div className="text-2xl font-bold text-reddit-orange mb-1">12.4K</div>
+              <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Total Points</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Reddit-style Stats Footer */}
-      <div className="bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border p-6">
-        <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-reddit-light-text dark:text-reddit-dark-text">
-            📊 Community Stats
-          </h3>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
-            <div className="text-2xl font-bold text-reddit-orange mb-1">25</div>
-            <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Active Users</div>
-          </div>
-          <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
-            <div className="text-2xl font-bold text-green-600 mb-1">456</div>
-            <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Cases Solved</div>
-          </div>
-          <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
-            <div className="text-2xl font-bold text-blue-600 mb-1">89%</div>
-            <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Avg Accuracy</div>
-          </div>
-          <div className="text-center bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover rounded-lg p-4 border border-reddit-light-border dark:border-reddit-dark-border">
-            <div className="text-2xl font-bold text-reddit-orange mb-1">12.4K</div>
-            <div className="text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary">Total Points</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* 3D User Profile Card */}
+      <UserProfileCard
+        user={selectedUser}
+        isOpen={isCardOpen}
+        onClose={handleCloseCard}
+      />
+    </>
   );
 };
 
