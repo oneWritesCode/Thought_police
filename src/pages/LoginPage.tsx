@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield, LogIn, UserCheck, Lock, Zap, ArrowLeft, Users, Target, Award } from 'lucide-react';
+import { Shield, LogIn, UserCheck, Lock, Target, Award, ArrowLeft, Users } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
@@ -143,41 +143,11 @@ const LoginPage: React.FC = () => {
             </p>
           </motion.div>
 
-          {/* Community Stats */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-8 bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-lg border border-reddit-light-border dark:border-reddit-dark-border p-6 transition-colors duration-200"
-          >
-            <h3 className="text-lg font-bold text-reddit-light-text dark:text-reddit-dark-text mb-4 text-center transition-colors duration-200">
-              🏆 Join Our Community
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-reddit-orange mb-1">1,247</div>
-                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Active Officers</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 mb-1">8,932</div>
-                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Cases Solved</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600 mb-1">87.3%</div>
-                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Accuracy Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600 mb-1">156K</div>
-                <div className="text-xs text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">Comments Analyzed</div>
-              </div>
-            </div>
-          </motion.div>
-
           {/* Reddit-style Footer */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 0.5 }}
             className="mt-6 text-center"
           >
             <div className="flex items-center justify-center space-x-4 text-sm text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary transition-colors duration-200">
