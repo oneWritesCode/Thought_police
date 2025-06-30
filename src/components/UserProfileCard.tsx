@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -18,8 +18,16 @@ import {
   Activity,
   Zap,
   Crown,
-  Medal
+  Medal,
+  Download,
+  Share2,
+  Camera,
+  Twitter,
+  Facebook,
+  Instagram,
+  Copy
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
 
 interface UserData {
   rank: number;
@@ -54,6 +62,9 @@ interface UserProfileCardProps {
 const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [screenHeight, setScreenHeight] = useState(window.innerHeight);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -81,6 +92,115 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
   // Determine if we need compact mode based on screen height
   const isCompactMode = screenHeight < 700;
   const cardHeight = isCompactMode ? Math.min(screenHeight - 80, 550) : 600;
+
+  const captureCard = async () => {
+    if (!cardRef.current) return;
+
+    setIsCapturing(true);
+    try {
+      // Hide share buttons and close button during capture
+      const shareButtons = document.querySelectorAll('.share-controls');
+      const closeButtons = document.querySelectorAll('.close-button');
+      
+      shareButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
+      closeButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
+
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: 'transparent',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        width: cardRef.current.offsetWidth,
+        height: cardRef.current.offsetHeight,
+      });
+
+      // Restore buttons
+      shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
+      closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
+
+      return canvas;
+    } catch (error) {
+      console.error('Failed to capture card:', error);
+      return null;
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const downloadImage = async () => {
+    const canvas = await captureCard();
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.download = `thought-police-${user.username}-card.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  const shareToSocial = async (platform: string) => {
+    const canvas = await captureCard();
+    if (!canvas) return;
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      const text = `Check out my Thought Police officer card! 🚔 Rank #${user.rank} with ${user.points} points! #ThoughtPolice #RedditAnalysis`;
+      
+      if (navigator.share && platform === 'native') {
+        try {
+          const file = new File([blob], `thought-police-${user.username}.png`, { type: 'image/png' });
+          await navigator.share({
+            title: 'My Thought Police Card',
+            text,
+            files: [file]
+          });
+        } catch (error) {
+          console.log('Native sharing failed, falling back to download');
+          downloadImage();
+        }
+      } else {
+        // Fallback to platform-specific URLs
+        const urls = {
+          twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+          facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+          instagram: '', // Instagram doesn't support direct URL sharing
+        };
+
+        if (urls[platform as keyof typeof urls]) {
+          window.open(urls[platform as keyof typeof urls], '_blank');
+        }
+        
+        // Also download the image for manual sharing
+        downloadImage();
+      }
+    }, 'image/png');
+  };
+
+  const copyToClipboard = async () => {
+    const canvas = await captureCard();
+    if (!canvas) return;
+
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      try {
+        const item = new ClipboardItem({ 'image/png': blob });
+        await navigator.clipboard.write([item]);
+        
+        // Show success feedback
+        const button = document.querySelector('.copy-button');
+        if (button) {
+          button.textContent = 'Copied!';
+          setTimeout(() => {
+            button.textContent = 'Copy Image';
+          }, 2000);
+        }
+      } catch (error) {
+        console.log('Clipboard API failed, downloading instead');
+        downloadImage();
+      }
+    }, 'image/png');
+  };
 
   const getRankIcon = (rank: number) => {
     const iconSize = isCompactMode ? 'h-6 w-6' : 'h-8 w-8';
@@ -135,12 +255,13 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
           onClick={onClose}
         >
           {/* 3D Card Container */}
           <motion.div
+            ref={cardRef}
             initial={{ scale: 0.5, rotateY: -180, opacity: 0 }}
             animate={{ scale: 1, rotateY: 0, opacity: 1 }}
             exit={{ scale: 0.5, rotateY: 180, opacity: 0 }}
@@ -188,7 +309,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                       e.stopPropagation();
                       onClose();
                     }}
-                    className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm"
+                    className="close-button absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm"
                   >
                     <X className="h-5 w-5 text-white" />
                   </button>
@@ -366,7 +487,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                       e.stopPropagation();
                       onClose();
                     }}
-                    className="absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm"
+                    className="close-button absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm"
                   >
                     <X className="h-5 w-5 text-white" />
                   </button>
@@ -468,6 +589,122 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                 </div>
               </div>
             </motion.div>
+          </motion.div>
+
+          {/* Share Controls - Below the card */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ delay: 0.5 }}
+            className="share-controls mt-6 flex flex-col items-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Main Share Button */}
+            <motion.button
+              onClick={() => setShowShareMenu(!showShareMenu)}
+              disabled={isCapturing}
+              className={`flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-reddit-orange to-reddit-orange-dark text-white rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-200 ${
+                isCapturing ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+              }`}
+              whileHover={{ scale: isCapturing ? 1 : 1.05 }}
+              whileTap={{ scale: isCapturing ? 1 : 0.95 }}
+            >
+              {isCapturing ? (
+                <>
+                  <Camera className="h-5 w-5 animate-pulse" />
+                  <span>Capturing...</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-5 w-5" />
+                  <span>Share Card</span>
+                </>
+              )}
+            </motion.button>
+
+            {/* Share Menu */}
+            <AnimatePresence>
+              {showShareMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                  className="flex flex-wrap items-center justify-center gap-3 p-4 bg-reddit-light-bg dark:bg-reddit-dark-bg-paper rounded-2xl border border-reddit-light-border dark:border-reddit-dark-border shadow-xl backdrop-blur-sm"
+                >
+                  {/* Download Button */}
+                  <motion.button
+                    onClick={downloadImage}
+                    disabled={isCapturing}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download</span>
+                  </motion.button>
+
+                  {/* Copy to Clipboard */}
+                  <motion.button
+                    onClick={copyToClipboard}
+                    disabled={isCapturing}
+                    className="copy-button flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Copy className="h-4 w-4" />
+                    <span>Copy Image</span>
+                  </motion.button>
+
+                  {/* Social Media Buttons */}
+                  <motion.button
+                    onClick={() => shareToSocial('twitter')}
+                    disabled={isCapturing}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Twitter className="h-4 w-4" />
+                    <span>Twitter</span>
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => shareToSocial('facebook')}
+                    disabled={isCapturing}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Facebook className="h-4 w-4" />
+                    <span>Facebook</span>
+                  </motion.button>
+
+                  {/* Native Share (if supported) */}
+                  {navigator.share && (
+                    <motion.button
+                      onClick={() => shareToSocial('native')}
+                      disabled={isCapturing}
+                      className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </motion.button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Instructions */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-white/60 text-sm text-center max-w-md"
+            >
+              Capture and share your Thought Police officer card with friends!
+            </motion.p>
           </motion.div>
         </motion.div>
       )}
