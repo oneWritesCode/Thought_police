@@ -102,138 +102,425 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
 
     setIsCapturing(true);
     try {
-      // Hide share buttons and close button during capture
-      const shareButtons = document.querySelectorAll('.share-controls');
-      const closeButtons = document.querySelectorAll('.close-button');
-      
-      shareButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
-      closeButtons.forEach(btn => (btn as HTMLElement).style.display = 'none');
-
-      // Wait a moment for elements to hide
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Create a temporary container with solid background
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'fixed';
-      tempContainer.style.top = '-9999px';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.width = `${cardRef.current.offsetWidth}px`;
-      tempContainer.style.height = `${cardRef.current.offsetHeight}px`;
-      tempContainer.style.background = 'transparent';
-      tempContainer.style.zIndex = '-1';
-      
-      // Clone the card element
-      const cardClone = cardRef.current.cloneNode(true) as HTMLElement;
-      
-      // Remove any transform styles that might cause issues
-      cardClone.style.transform = 'none';
-      cardClone.style.perspective = 'none';
-      
-      // Find the actual card content (the 3D container)
-      const cardContent = cardClone.querySelector('[data-card-content]') as HTMLElement;
-      if (cardContent) {
-        cardContent.style.transform = 'none';
-        cardContent.style.transformStyle = 'flat';
-        
-        // Make sure we're showing the front side
-        const frontSide = cardContent.querySelector('.backface-hidden:first-child') as HTMLElement;
-        const backSide = cardContent.querySelector('.backface-hidden:last-child') as HTMLElement;
-        
-        if (frontSide && backSide) {
-          frontSide.style.transform = 'none';
-          frontSide.style.backfaceVisibility = 'visible';
-          frontSide.style.display = 'block';
-          
-          backSide.style.display = 'none';
-        }
+      // Find the actual card content div
+      const cardContent = cardRef.current.querySelector('[data-card-content]') as HTMLElement;
+      if (!cardContent) {
+        console.error('Card content not found');
+        return null;
       }
-      
-      tempContainer.appendChild(cardClone);
-      document.body.appendChild(tempContainer);
 
-      // Capture with improved settings
-      const canvas = await html2canvas(tempContainer, {
-        backgroundColor: null, // Keep transparent for now
-        scale: 2, // High quality but not too heavy
+      // Hide UI elements during capture
+      const elementsToHide = [
+        ...document.querySelectorAll('.share-controls'),
+        ...document.querySelectorAll('.close-button'),
+        ...document.querySelectorAll('[data-hide-on-capture]')
+      ];
+      
+      elementsToHide.forEach(el => {
+        (el as HTMLElement).style.visibility = 'hidden';
+      });
+
+      // Wait for elements to hide
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Create a static version of the card for capture
+      const captureContainer = document.createElement('div');
+      captureContainer.style.position = 'fixed';
+      captureContainer.style.top = '-9999px';
+      captureContainer.style.left = '-9999px';
+      captureContainer.style.width = '800px';
+      captureContainer.style.height = '600px';
+      captureContainer.style.zIndex = '-1';
+
+      // Create the card HTML structure manually to ensure all content is captured
+      const cardHTML = createCardHTML(user, isFlipped);
+      captureContainer.innerHTML = cardHTML;
+
+      document.body.appendChild(captureContainer);
+
+      // Wait for fonts and styles to load
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Capture with high quality settings
+      const canvas = await html2canvas(captureContainer, {
+        backgroundColor: null,
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
         imageTimeout: 15000,
-        removeContainer: false,
-        foreignObjectRendering: true,
-        width: tempContainer.offsetWidth,
-        height: tempContainer.offsetHeight,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: tempContainer.offsetWidth,
-        windowHeight: tempContainer.offsetHeight
+        width: 800,
+        height: 600,
+        foreignObjectRendering: false,
+        removeContainer: false
       });
 
       // Clean up
-      document.body.removeChild(tempContainer);
+      document.body.removeChild(captureContainer);
       
-      // Restore buttons
-      shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
-      closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
+      // Restore hidden elements
+      elementsToHide.forEach(el => {
+        (el as HTMLElement).style.visibility = 'visible';
+      });
 
-      // Convert to image with solid background if needed
-      const finalCanvas = document.createElement('canvas');
-      const ctx = finalCanvas.getContext('2d');
-      finalCanvas.width = canvas.width;
-      finalCanvas.height = canvas.height;
-      
-      if (ctx) {
-        // Fill with solid background color matching the card
-        const gradient = ctx.createLinearGradient(0, 0, finalCanvas.width, finalCanvas.height);
-        
-        // Use the rank-based gradient colors
-        switch (user.rank) {
-          case 1:
-            gradient.addColorStop(0, '#fbbf24'); // yellow-400
-            gradient.addColorStop(0.5, '#f59e0b'); // amber-500
-            gradient.addColorStop(1, '#d97706'); // yellow-600
-            break;
-          case 2:
-            gradient.addColorStop(0, '#d1d5db'); // gray-300
-            gradient.addColorStop(0.5, '#9ca3af'); // gray-400
-            gradient.addColorStop(1, '#6b7280'); // gray-500
-            break;
-          case 3:
-            gradient.addColorStop(0, '#fbbf24'); // amber-400
-            gradient.addColorStop(0.5, '#f97316'); // orange-500
-            gradient.addColorStop(1, '#ea580c'); // amber-600
-            break;
-          default:
-            gradient.addColorStop(0, '#FF4500'); // reddit-orange
-            gradient.addColorStop(0.5, '#dc2626'); // red-600
-            gradient.addColorStop(1, '#CC3700'); // reddit-orange-dark
-            break;
-        }
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-        
-        // Draw the captured content on top
-        ctx.drawImage(canvas, 0, 0);
-      }
-
-      const imageDataUrl = finalCanvas.toDataURL('image/png', 1.0);
+      const imageDataUrl = canvas.toDataURL('image/png', 1.0);
       setCapturedImage(imageDataUrl);
       setShowImagePreview(true);
       
-      return finalCanvas;
+      return canvas;
     } catch (error) {
       console.error('Failed to capture card:', error);
-      // Restore buttons even on error
-      const shareButtons = document.querySelectorAll('.share-controls');
-      const closeButtons = document.querySelectorAll('.close-button');
-      shareButtons.forEach(btn => (btn as HTMLElement).style.display = '');
-      closeButtons.forEach(btn => (btn as HTMLElement).style.display = '');
+      
+      // Restore hidden elements on error
+      const elementsToHide = [
+        ...document.querySelectorAll('.share-controls'),
+        ...document.querySelectorAll('.close-button'),
+        ...document.querySelectorAll('[data-hide-on-capture]')
+      ];
+      elementsToHide.forEach(el => {
+        (el as HTMLElement).style.visibility = 'visible';
+      });
+      
       return null;
     } finally {
       setIsCapturing(false);
+    }
+  };
+
+  const createCardHTML = (userData: UserData, flipped: boolean) => {
+    const getRankGradient = (rank: number) => {
+      switch (rank) {
+        case 1:
+          return 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)';
+        case 2:
+          return 'linear-gradient(135deg, #d1d5db 0%, #9ca3af 50%, #6b7280 100%)';
+        case 3:
+          return 'linear-gradient(135deg, #fbbf24 0%, #f97316 50%, #ea580c 100%)';
+        default:
+          return 'linear-gradient(135deg, #FF4500 0%, #dc2626 50%, #CC3700 100%)';
+      }
+    };
+
+    const getRankIcon = (rank: number) => {
+      switch (rank) {
+        case 1:
+          return '👑';
+        case 2:
+          return '🏆';
+        case 3:
+          return '🥉';
+        default:
+          return '🛡️';
+      }
+    };
+
+    const getRedditAvatar = (username: string) => {
+      const avatarIndex = username.charCodeAt(0) % 10;
+      return `https://www.redditstatic.com/avatars/defaults/v2/avatar_default_${avatarIndex}.png`;
+    };
+
+    const mockRecentActivity = [
+      { type: 'case', description: 'Solved contradiction case #1247', time: '2h ago', points: 150 },
+      { type: 'achievement', description: 'Earned "Eagle Eye" badge', time: '1d ago' },
+      { type: 'comment', description: 'Top comment in r/ThoughtPolice', time: '2d ago', points: 45 },
+      { type: 'case', description: 'Found political contradiction', time: '3d ago', points: 200 },
+    ];
+
+    if (flipped) {
+      // Back side content
+      return `
+        <div style="
+          width: 800px;
+          height: 600px;
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #000000 100%);
+          border-radius: 24px;
+          position: relative;
+          overflow: hidden;
+          color: white;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        ">
+          <!-- Background Effects -->
+          <div style="
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 30%, rgba(255,69,0,0.1), transparent 50%);
+          "></div>
+          
+          <!-- Content -->
+          <div style="padding: 48px; position: relative; z-index: 10;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h2 style="font-size: 32px; font-weight: bold; margin: 0 0 8px 0;">Officer Profile</h2>
+              <p style="color: rgba(255,255,255,0.7); margin: 0;">Detailed Statistics & Achievements</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
+              <!-- Performance Stats -->
+              <div style="
+                background: rgba(0,0,0,0.2);
+                border-radius: 16px;
+                padding: 24px;
+                backdrop-filter: blur(10px);
+              ">
+                <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; display: flex; align-items: center;">
+                  🎯 Performance
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; justify-between;">
+                    <span style="color: rgba(255,255,255,0.7);">Total Karma</span>
+                    <span style="font-weight: bold;">${userData.karma.toLocaleString()}</span>
+                  </div>
+                  <div style="display: flex; justify-between;">
+                    <span style="color: rgba(255,255,255,0.7);">Badge Count</span>
+                    <span style="font-weight: bold;">${userData.badgeCount || 12}</span>
+                  </div>
+                  <div style="display: flex; justify-between;">
+                    <span style="color: rgba(255,255,255,0.7);">Join Date</span>
+                    <span style="font-weight: bold;">${userData.joinDate || 'Jan 2024'}</span>
+                  </div>
+                  <div style="display: flex; justify-between;">
+                    <span style="color: rgba(255,255,255,0.7);">Rank Progress</span>
+                    <span style="font-weight: bold; color: #10b981;">Elite</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Achievements -->
+              <div style="
+                background: rgba(0,0,0,0.2);
+                border-radius: 16px;
+                padding: 24px;
+                backdrop-filter: blur(10px);
+              ">
+                <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; display: flex; align-items: center;">
+                  🏆 Achievements
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div style="text-align: center; padding: 12px; border-radius: 8px; background: linear-gradient(45deg, #fbbf24, #f97316);">
+                    <div style="font-size: 20px; margin-bottom: 4px;">🏆</div>
+                    <div style="font-size: 12px; font-weight: 500;">Truth Seeker</div>
+                  </div>
+                  <div style="text-align: center; padding: 12px; border-radius: 8px; background: linear-gradient(45deg, #8b5cf6, #ec4899);">
+                    <div style="font-size: 20px; margin-bottom: 4px;">🏆</div>
+                    <div style="font-size: 12px; font-weight: 500;">Eagle Eye</div>
+                  </div>
+                  <div style="text-align: center; padding: 12px; border-radius: 8px; background: linear-gradient(45deg, #3b82f6, #6366f1);">
+                    <div style="font-size: 20px; margin-bottom: 4px;">🏆</div>
+                    <div style="font-size: 12px; font-weight: 500;">First Case</div>
+                  </div>
+                  <div style="text-align: center; padding: 12px; border-radius: 8px; background: linear-gradient(45deg, #10b981, #059669);">
+                    <div style="font-size: 20px; margin-bottom: 4px;">🏆</div>
+                    <div style="font-size: 12px; font-weight: 500;">Pattern Master</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Specializations -->
+            <div style="
+              background: rgba(0,0,0,0.2);
+              border-radius: 16px;
+              padding: 24px;
+              backdrop-filter: blur(10px);
+            ">
+              <h3 style="font-size: 18px; font-weight: bold; margin: 0 0 16px 0; display: flex; align-items: center;">
+                🛡️ Specializations
+              </h3>
+              <div style="display: flex; flex-wrap: gap: 8px;">
+                <span style="padding: 4px 12px; background: rgba(255,69,0,0.2); border: 1px solid rgba(255,69,0,0.3); border-radius: 20px; font-size: 12px; color: #ff6314;">Political Analysis</span>
+                <span style="padding: 4px 12px; background: rgba(255,69,0,0.2); border: 1px solid rgba(255,69,0,0.3); border-radius: 20px; font-size: 12px; color: #ff6314;">Sentiment Detection</span>
+                <span style="padding: 4px 12px; background: rgba(255,69,0,0.2); border: 1px solid rgba(255,69,0,0.3); border-radius: 20px; font-size: 12px; color: #ff6314;">Pattern Recognition</span>
+                <span style="padding: 4px 12px; background: rgba(255,69,0,0.2); border: 1px solid rgba(255,69,0,0.3); border-radius: 20px; font-size: 12px; color: #ff6314;">Fact Checking</span>
+                <span style="padding: 4px 12px; background: rgba(255,69,0,0.2); border: 1px solid rgba(255,69,0,0.3); border-radius: 20px; font-size: 12px; color: #ff6314;">Behavioral Analysis</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // Front side content
+      return `
+        <div style="
+          width: 800px;
+          height: 600px;
+          background: ${getRankGradient(userData.rank)};
+          border-radius: 24px;
+          position: relative;
+          overflow: hidden;
+          color: white;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        ">
+          <!-- Background Effects -->
+          <div style="
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.2) 0%, transparent 50%, rgba(0,0,0,0.3) 100%);
+          "></div>
+          <div style="
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1), transparent 50%);
+          "></div>
+          <div style="
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 80%, rgba(255,255,255,0.05), transparent 50%);
+          "></div>
+          
+          <!-- Floating particles -->
+          <div style="position: absolute; top: 40px; left: 40px; width: 8px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 50%;"></div>
+          <div style="position: absolute; top: 80px; right: 80px; width: 12px; height: 12px; background: rgba(255,255,255,0.15); border-radius: 50%;"></div>
+          <div style="position: absolute; bottom: 80px; left: 80px; width: 4px; height: 4px; background: rgba(255,255,255,0.25); border-radius: 50%;"></div>
+          <div style="position: absolute; bottom: 40px; right: 40px; width: 8px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+
+          <!-- Content -->
+          <div style="position: relative; z-index: 10; padding: 48px; height: 100%; display: flex; flex-direction: column;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="position: relative;">
+                  <div style="font-size: 48px;">${getRankIcon(userData.rank)}</div>
+                  <div style="position: absolute; inset: 0; background: rgba(255,255,255,0.2); border-radius: 50%; filter: blur(8px);"></div>
+                </div>
+                <div>
+                  <h1 style="font-size: 36px; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    u/${userData.username}
+                  </h1>
+                  <p style="color: rgba(255,255,255,0.8); font-size: 18px; margin: 0;">
+                    Rank #${userData.rank} • Elite Detective
+                  </p>
+                </div>
+              </div>
+              
+              <div style="text-align: right;">
+                <div style="font-size: 12px; color: rgba(255,255,255,0.6);">Badge #</div>
+                <div style="font-size: 20px; font-weight: bold;">TP${userData.rank.toString().padStart(6, '0')}</div>
+              </div>
+            </div>
+
+            <!-- Avatar and Stats -->
+            <div style="display: flex; align-items: center; gap: 32px; margin-bottom: 32px;">
+              <div style="position: relative; flex-shrink: 0;">
+                <img
+                  src="${getRedditAvatar(userData.username)}"
+                  alt="${userData.username}"
+                  style="
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    border: 4px solid rgba(255,255,255,0.3);
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                  "
+                />
+                <div style="
+                  position: absolute;
+                  top: -4px;
+                  right: -4px;
+                  width: 32px;
+                  height: 32px;
+                  background: #FF4500;
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+                  border: 2px solid white;
+                ">
+                  <span style="font-size: 16px;">⭐</span>
+                </div>
+              </div>
+
+              <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                <div style="
+                  text-align: center;
+                  background: rgba(0,0,0,0.2);
+                  border-radius: 16px;
+                  padding: 20px;
+                  backdrop-filter: blur(10px);
+                ">
+                  <div style="font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    ${userData.points.toLocaleString()}
+                  </div>
+                  <div style="color: rgba(255,255,255,0.7); font-size: 12px;">Points</div>
+                </div>
+                
+                <div style="
+                  text-align: center;
+                  background: rgba(0,0,0,0.2);
+                  border-radius: 16px;
+                  padding: 20px;
+                  backdrop-filter: blur(10px);
+                ">
+                  <div style="font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    ${userData.cases}
+                  </div>
+                  <div style="color: rgba(255,255,255,0.7); font-size: 12px;">Cases</div>
+                </div>
+                
+                <div style="
+                  text-align: center;
+                  background: rgba(0,0,0,0.2);
+                  border-radius: 16px;
+                  padding: 20px;
+                  backdrop-filter: blur(10px);
+                ">
+                  <div style="font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    ${(userData.accuracyRate || 89.2).toFixed(1)}%
+                  </div>
+                  <div style="color: rgba(255,255,255,0.7); font-size: 12px;">Accuracy</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div style="
+              background: rgba(0,0,0,0.2);
+              border-radius: 16px;
+              padding: 24px;
+              backdrop-filter: blur(10px);
+              flex: 1;
+            ">
+              <h3 style="font-size: 20px; font-weight: bold; margin: 0 0 16px 0; display: flex; align-items: center;">
+                📊 Recent Activity
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${mockRecentActivity.slice(0, 4).map((activity, index) => `
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    padding: 12px;
+                  ">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                      <div style="
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background: ${
+                          activity.type === 'case' ? '#10b981' :
+                          activity.type === 'achievement' ? '#fbbf24' :
+                          '#3b82f6'
+                        };
+                        flex-shrink: 0;
+                      "></div>
+                      <div style="flex: 1;">
+                        <div style="font-size: 14px; font-weight: 500;">${activity.description}</div>
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.6);">${activity.time}</div>
+                      </div>
+                    </div>
+                    ${activity.points ? `
+                      <div style="color: #10b981; font-weight: bold; font-size: 14px; flex-shrink: 0;">
+                        +${activity.points}
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
   };
 
@@ -454,6 +741,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                       onClose();
                     }}
                     className="close-button absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm"
+                    data-hide-on-capture="true"
                   >
                     <X className="h-5 w-5 text-white" />
                   </button>
@@ -601,6 +889,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                       animate={{ opacity: 1 }}
                       transition={{ delay: 1.5 }}
                       className={`text-center ${isCompactMode ? 'py-2' : 'py-4'}`}
+                      data-hide-on-capture="true"
                     >
                       <div className="text-white/60 text-xs flex items-center justify-center space-x-2">
                         <Zap className="h-3 w-3" />
@@ -632,6 +921,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                       onClose();
                     }}
                     className="close-button absolute top-4 right-4 z-10 p-2 bg-black/20 hover:bg-black/40 rounded-full transition-colors backdrop-blur-sm"
+                    data-hide-on-capture="true"
                   >
                     <X className="h-5 w-5 text-white" />
                   </button>
@@ -722,7 +1012,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                     </div>
 
                     {/* Flip Indicator */}
-                    <div className={`text-center ${isCompactMode ? 'py-2' : 'py-4'}`}>
+                    <div className={`text-center ${isCompactMode ? 'py-2' : 'py-4'}`} data-hide-on-capture="true">
                       <div className="text-white/60 text-xs flex items-center justify-center space-x-2">
                         <Zap className="h-3 w-3" />
                         <span>Click to flip back</span>
@@ -743,6 +1033,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
             transition={{ delay: 0.5 }}
             className="share-controls mt-6 flex flex-col items-center space-y-4"
             onClick={(e) => e.stopPropagation()}
+            data-hide-on-capture="true"
           >
             {/* Main Share Button */}
             <motion.button
